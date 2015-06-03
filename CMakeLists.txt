@@ -22,7 +22,7 @@ find_package(AMQP REQUIRED)
 include_directories(${AMQP_INCLUDE_DIR})
 
 add_library(
-	libasio-protocols.a
+	${Protocols_LIBRARY}
 	src/amqp.cpp
 )
 
