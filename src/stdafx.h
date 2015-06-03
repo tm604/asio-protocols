@@ -7,6 +7,4 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
 
-#include <amqpcpp.h>
-
 

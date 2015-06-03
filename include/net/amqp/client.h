@@ -1,8 +1,5 @@
 #pragma once
-
 #include <boost/regex.hpp>
-
-#include <amqpcpp/amqpcpp.h>
 #include <net/amqp.h>
 #include <cps/future.h>
 
