@@ -17,6 +17,7 @@ include_directories(include/ src/)
 find_package(Boost COMPONENTS system regex thread log unit_test_framework)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Future REQUIRED)
 
 find_package(AMQP REQUIRED)
 include_directories(${AMQP_INCLUDE_DIR})
