@@ -11,7 +11,6 @@ set(Protocols_LIBRARY asio-protocols)
 set(Boost_USE_MULTITHREADED ON)
 add_definitions(-DBOOST_LOG_DYN_LINK)
 
-include(cotire)
 include_directories(include/ src/)
 
 find_package(Boost COMPONENTS system regex thread log unit_test_framework)
@@ -44,10 +43,7 @@ target_link_libraries(
 if(WIN32)
 	target_link_libraries(amqp_tests wsock32 ws2_32)
 endif()
-set_target_properties(amqp_tests PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "src/stdafx.h")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
- # target_compile_features(amqp_tests PRIVATE cxx_constexpr)
-cotire(amqp_tests)
 
 install(
 	DIRECTORY include/
