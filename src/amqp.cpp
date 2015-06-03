@@ -1,4 +1,4 @@
-#include <net/amqp.h>
+#include <net/asio/amqp.h>
 
 namespace std {
 

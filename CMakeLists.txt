@@ -33,6 +33,7 @@ add_executable(
 
 target_link_libraries(
 	amqp_tests
+	${Protocols_LIBRARY}
 	${AMQP_LIBRARY}
 	${Boost_LIBRARIES}
 	${OPENSSL_LIBRARIES}

@@ -1,5 +1,12 @@
 #pragma once
-#include "Log.h"
+#include <string>
+#include <memory>
+#include <boost/regex.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/address.hpp>
+#include <boost/signals2.hpp>
+#include <cps/future.h>
 
 namespace net {
 
@@ -21,9 +28,7 @@ private:
 		size_t size
 	) override
 	{
-		TRACE << "AMQP has " << size << " bytes to write";
 		outgoing_.insert(outgoing_.end(), buffer, buffer + size);
-		TRACE << "Total outgoing now " << outgoing_.size();
 
 		/* Defer any write attempts until we're past the constructor */
 		if(active_)
@@ -35,12 +40,13 @@ private:
 		const char *message
 	) override
 	{
-		ERROR << "Encountered AMQP error: " << message;
+		std::string m { message };
+		amqp_error(m);
 	}
 
     virtual void onConnected(AMQP::Connection *connection) override
 	{
-		TRACE << "AMQP handshaking complete";
+		amqp_connected(connection);
 	}
 
 	void
@@ -53,20 +59,15 @@ private:
 			return;
 
 		writing_ = true;
-		TRACE << "Attempting write";
 		auto self = shared_from_this();
-		TRACE << "Trying to write existing data: " << outgoing_.size() << " bytes";
 		auto v = std::make_shared<std::vector<char>>(outgoing_.cbegin(), outgoing_.cend());
 		outgoing_.clear();
-		TRACE << "Will write " << v->size() << " bytes";
 		self->strand_.post([self, v]() {
 			self->sock_->async_write_some(
 				boost::asio::buffer(*v),
 				[self, v](boost::system::error_code ec, std::size_t len) {
-					TRACE << "in write callback, len = " << std::to_string(len) << ", ec = " << ec.message();
 					self->writing_ = false;
 					if(ec) {
-						ERROR << "Had error " << ec.message();
 						self->connection_error(ec.message());
 					} else {
 						self->write_handler();
@@ -85,7 +86,6 @@ private:
 		auto self = shared_from_this();
 		// auto mb = std::make_shared<boost::asio::streambuf::mutable_buffers_type>(incoming_->prepare(4096));
 		// std::cout << "about to read some" << std::endl;
-		TRACE << "async_read_some";
 		self->strand_.post([self]() {
 			auto storage = std::make_shared<std::vector<char>>(4096);
 			self->sock_->async_read_some(
@@ -95,21 +95,15 @@ private:
 					std::size_t len
 				) {
 					if(ec) {
-						ERROR << "AMQP network error: " << ec.message();
 						self->connection_error(ec.message());
 					} else {
-						TRACE << "read some, len = " << std::to_string(len) << ", ec = " << ec.message();
 						storage->resize(len);
-						TRACE << "internal buffer was " << self->incoming_.size() << " bytes";
 						self->incoming_.insert(end(self->incoming_), begin(*storage), end(*storage));
 						size_t available = self->incoming_.size();
-						TRACE << "total internal buffer now " << available << " bytes";
 						size_t processed = 0;
 						char *ptr = &((self->incoming_)[0]);
 						while(available > 0) {
-							TRACE << "Attempting to process " << available << " bytes from buffer";
 							size_t parsed = self->conn_->parse(ptr, available);
-							TRACE << "Parsed " << parsed << " bytes from buffer";
 							if(parsed == 0) break;
 							ptr += parsed;
 							available -= parsed;
@@ -117,7 +111,6 @@ private:
 						}
 						self->incoming_.erase(begin(self->incoming_), begin(self->incoming_) + processed);
 						/* Defer callback until we can read again */
-						TRACE << "Once again";
 						self->read_handler();
 					}
 				}
@@ -139,7 +132,6 @@ private:
 	ourCapabilities(AMQP::Table &caps)
 	override
 	{
-		DEBUG << "Setting capabilities";
 		caps["consumer_cancel_notify"] = true;
 		caps["basic.nack"] = true;
 		caps["publisher_confirms"] = true;
@@ -152,7 +144,6 @@ private:
 	ourProperties(AMQP::Table &props)
 	override
 	{
-		DEBUG << "Setting properties";
 		props["version"] = "1.00";
 		props["product"] = "asio-protocols";
 	}
@@ -194,6 +185,8 @@ public:
 
     virtual ~connection() { }
 
+	boost::signals2::signal<void(const std::string &)> amqp_error;
+	boost::signals2::signal<void(AMQP::Connection *)> amqp_connected;
 	boost::signals2::signal<void(const std::string &)> connection_error;
 	boost::signals2::signal<void(const std::string &)> channel_error;
 };

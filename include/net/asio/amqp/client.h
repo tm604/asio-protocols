@@ -1,6 +1,10 @@
 #pragma once
+#include <string>
+#include <memory>
 #include <boost/regex.hpp>
-#include <net/amqp.h>
+#include <boost/asio.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/address.hpp>
 #include <cps/future.h>
 
 namespace net {
@@ -119,25 +123,20 @@ virtual ~client() { }
 				std::to_string(cd.port())
 			);
 			auto socket_ = std::make_shared<tcp::socket>(service_);
-			DEBUG << "Resolving RabbitMQ server";
 
 			resolver->async_resolve(
 				*query,
 				[query, socket_, resolver, f, cd, self](boost::system::error_code ec, tcp::resolver::iterator ei) {
 					if(ec) {
-						ERROR << "Error resolving AMQP server address: " << ec;
 						f->fail(ec.message());
 					} else {
-						DEBUG << "Connecting to AMQP server on " << cd.host() << ":" << cd.port();
 						boost::asio::async_connect(
 							*socket_,
 							ei,
 							[socket_, f, cd, self](boost::system::error_code ec, tcp::resolver::iterator it) {
 								if(ec) {
-									ERROR << "Had error: " << ec;
 									f->fail(ec.message());
 								} else {
-									DEBUG << "Connected to AMQP server";
 									tcp::socket::non_blocking_io nb(true);
 									socket_->io_control(nb);
 									auto mc = std::make_shared<net::amqp::connection>(socket_, self->service_);
@@ -150,13 +149,10 @@ virtual ~client() { }
 				}
 			);
 		} catch(boost::system::system_error& e) {
-			ERROR << "System error while attempting to connect to AMQP server: " << e.what();
 			f->fail(e.what());
 		} catch(std::exception& e) {
-			std::cerr << "General exception: " << e.what() << std::endl;
 			f->fail(e.what());
 		} catch(std::string& e) {
-			std::cerr << "Threw string: " << e << std::endl;
 			f->fail(e);
 		}
 		return f;

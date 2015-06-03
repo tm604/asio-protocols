@@ -1,6 +1,3 @@
-
-#include "stdafx.h"
-
 #define BOOST_TEST_MAIN
 #if !defined( WIN32 )
     #define BOOST_TEST_DYN_LINK
@@ -10,8 +7,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "net/amqp.h"
-#include "net/amqp/client.h"
+#include "net/asio/amqp.h"
 #include "Log.h"
 
 std::string
@@ -26,7 +22,6 @@ normalise(const std::string &in)
 BOOST_AUTO_TEST_CASE(amqp_uri)
 {
 	using namespace std;
-	auto cd = net::amqp::connection_details();
 	auto cases = vector<string> {
 		"amqp://u:p@somehost.example.com/vh",
 		"amqps://u:p@somehost.example.com/vh",
@@ -36,7 +31,7 @@ BOOST_AUTO_TEST_CASE(amqp_uri)
 	};
 	for(auto &uri : cases) {
 		DEBUG << "Testing [" << uri << "]";
-		BOOST_CHECK(cd.from_uri(uri));
+		auto cd = net::amqp::connection_details::parse(uri);
 		BOOST_CHECK(to_string(cd) == uri);
 		if(to_string(cd) != uri) ERROR << "Expected [" << uri << "], had [" << to_string(cd) << "]";
 	}
@@ -44,9 +39,13 @@ BOOST_AUTO_TEST_CASE(amqp_uri)
 
 BOOST_AUTO_TEST_CASE(amqp_connect)
 {
+	/* Need an AMQP server for these */
+	return;
+
     boost::asio::io_service srv;
 	auto amqp = net::amqp::client::create(srv);
-	amqp->connect("localhost", 5672);
+	auto cd = net::amqp::connection_details();
+	amqp->connect(cd);
     srv.run();
 }
 
