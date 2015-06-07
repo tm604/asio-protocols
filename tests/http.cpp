@@ -37,6 +37,21 @@ request req_from_string(string in)
 	return r;
 }
 
+response res_from_string(string in)
+{
+	response r;
+	boost::algorithm::trim_left(in);
+	r.parse_data(
+		boost::regex_replace(
+			in,
+			boost::regex("\n"),
+			"\r\n",
+			boost::match_default | boost::format_all
+		)
+	);
+	return r;
+}
+
 BOOST_AUTO_TEST_CASE(http_request)
 {
 	{
@@ -69,6 +84,43 @@ Server: nginx
 		BOOST_CHECK_EQUAL(r.header_count(), 2);
 		BOOST_CHECK_EQUAL(r.header_value("Host"), "example.com");
 		BOOST_CHECK_EQUAL(r.header_value("Server"), "nginx");
+	}
+}
+
+BOOST_AUTO_TEST_CASE(http_response)
+{
+	{
+		response r;
+		vector<pair<string, string>> seen_headers;
+		r.on_header_added.connect([&seen_headers](const header &h) {
+			seen_headers.push_back({ h.key(), h.value() });
+		});
+		r << header("some-header", "x");
+		BOOST_CHECK_EQUAL(seen_headers.size(), 1);
+		r << header("other-header", "y");
+		BOOST_CHECK_EQUAL(seen_headers.size(), 2);
+		BOOST_CHECK_EQUAL(r.header_value("some-header"), "x");
+		BOOST_CHECK_EQUAL(seen_headers[0].first, "Some-Header");
+		BOOST_CHECK_EQUAL(seen_headers[0].second, "x");
+		BOOST_CHECK_EQUAL(r.header_value("other-header"), "y");
+		BOOST_CHECK_EQUAL(seen_headers[1].first, "Other-Header");
+		BOOST_CHECK_EQUAL(seen_headers[1].second, "y");
+	}
+	{
+		auto r = res_from_string(R"(
+HTTP/1.1 200 OK
+Server: nginx
+Last-Modified: yesterday
+Content-Length: 0
+
+)");
+		BOOST_CHECK_EQUAL(r.version(), "HTTP/1.1");
+		BOOST_CHECK_EQUAL(r.status_code(), 200);
+		BOOST_CHECK_EQUAL(r.status_message(), "OK");
+		BOOST_CHECK_EQUAL(r.header_count(), 3);
+		BOOST_CHECK_EQUAL(r.header_value("Server"), "nginx");
+		BOOST_CHECK_EQUAL(r.header_value("Last-Modified"), "yesterday");
+		BOOST_CHECK_EQUAL(r.header_value("Content-Length"), "0");
 	}
 }
 
