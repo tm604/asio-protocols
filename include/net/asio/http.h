@@ -224,6 +224,13 @@ public:
 	}
 	const std::string &request_path() const { return request_path_; }
 
+	virtual request &
+	operator<<(const header &h) override {
+		headers_.push_back(h);
+		on_header_added(h);
+		return *this;
+	}
+
 public: // Signals
 	boost::signals2::signal<void(const std::string &)> on_method;
 	boost::signals2::signal<void(const std::string &)> on_request_path;
@@ -304,6 +311,13 @@ public:
 	 * Returns the current status message.
 	 */
 	const std::string &status_message() const { return status_message_; }
+
+	virtual response &
+	operator<<(const header &h) override {
+		headers_.push_back(h);
+		on_header_added(h);
+		return *this;
+	}
 
 public: // Signals
 	boost::signals2::signal<void(uint16_t)> on_status_code;
