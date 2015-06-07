@@ -25,10 +25,20 @@ normalise(const std::string &in)
 BOOST_AUTO_TEST_CASE(http_request)
 {
 	request r;
+	vector<pair<string, string>> seen_headers;
+	r.on_header_added.connect([&seen_headers](const header &h) {
+		seen_headers.push_back({ h.key(), h.value() });
+	});
 	r << header("some-header", "x");
+	BOOST_CHECK_EQUAL(seen_headers.size(), 1);
 	r << header("other-header", "y");
+	BOOST_CHECK_EQUAL(seen_headers.size(), 2);
 	BOOST_CHECK_EQUAL(r.header_value("some-header"), "x");
+	BOOST_CHECK_EQUAL(seen_headers[0].first, "Some-Header");
+	BOOST_CHECK_EQUAL(seen_headers[0].second, "x");
 	BOOST_CHECK_EQUAL(r.header_value("other-header"), "y");
+	BOOST_CHECK_EQUAL(seen_headers[1].first, "Other-Header");
+	BOOST_CHECK_EQUAL(seen_headers[1].second, "y");
 }
 
 BOOST_AUTO_TEST_CASE(header_normalization)

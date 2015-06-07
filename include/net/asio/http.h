@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <boost/regex.hpp>
+#include <boost/signals2.hpp>
 
 namespace net {
 
@@ -37,8 +38,8 @@ public:
 	const std::string &key() const { return first; }
 	const std::string &value() const { return second; }
 
-	std::string
-	normalize_key(const std::string &k) const
+	static std::string
+	normalize_key(const std::string &k)
 	{
 		// s/(?:^|-)([^-]*)/\U$1\L$2/g
 		return boost::regex_replace(
@@ -49,8 +50,8 @@ public:
 		);
 	}
 
-	std::string
-	normalize_value(const std::string &v) const
+	static std::string
+	normalize_value(const std::string &v)
 	{
 		return v;
 	}
@@ -74,30 +75,47 @@ public:
 class request {
 public:
 
-	void method(const std::string &m) { method_ = m; }
+	void method(const std::string &m) {
+		method_ = m;
+		on_method(m);
+	}
 	const std::string &method(const std::string &m) const { return method_; }
 
-	void version(const std::string &m) { version_ = m; }
+	void version(const std::string &m) {
+		version_ = m;
+		on_version(m);
+	}
 	const std::string &version(const std::string &m) const { return version_; }
 
-	void request_path(const std::string &m) { request_path_ = m; }
+	void request_path(const std::string &m) {
+		request_path_ = m;
+		on_request_path(m);
+	}
 	const std::string &request_path(const std::string &m) const { return request_path_; }
 
 	size_t header_count() const { return headers_.size(); }
 
 	const std::string &header_value(const std::string &k)
 	{
-		for(auto &h : headers_) {
+		for(auto &h : headers_)
 			if(h.matches(k)) return h.value();
-		}
+
 		throw std::runtime_error("header " + k + " not found");
 	}
 
 	request &
 	operator<<(const header &h) {
 		headers_.push_back(h);
+		on_header_added(h);
 		return *this;
 	}
+
+public: // Signals
+	boost::signals2::signal<void(const header &)> on_header_added;
+	boost::signals2::signal<void(const header &)> on_header_removed;
+	boost::signals2::signal<void(const std::string &)> on_method;
+	boost::signals2::signal<void(const std::string &)> on_version;
+	boost::signals2::signal<void(const std::string &)> on_request_path;
 
 protected:
 	/** e.g. 'GET', 'POST' */
