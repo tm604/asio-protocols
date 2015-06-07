@@ -38,22 +38,24 @@ public:
 	const std::string &value() const { return second; }
 
 	std::string
-	normalize_key(const std::string &k)
+	normalize_key(const std::string &k) const
 	{
-		// s/[^|-](.)/\U$1/g
+		// s/(?:^|-)([^-]*)/\U$1\L$2/g
 		return boost::regex_replace(
 			k,
-			boost::regex("(?:^|-)(.)"),
-			"\\U\\1",
+			boost::regex("(?:^|-)\\K([^-]+)"),
+			"\\L\\u\\1",
 			boost::match_default | boost::format_all
 		);
 	}
 
 	std::string
-	normalize_value(const std::string &v)
+	normalize_value(const std::string &v) const
 	{
 		return v;
 	}
+
+	bool matches(const std::string &k) const { return normalize_key(k) == first; }
 };
 
 /**
@@ -80,6 +82,22 @@ public:
 
 	void request_path(const std::string &m) { request_path_ = m; }
 	const std::string &request_path(const std::string &m) const { return request_path_; }
+
+	size_t header_count() const { return headers_.size(); }
+
+	const std::string &header_value(const std::string &k)
+	{
+		for(auto &h : headers_) {
+			if(h.matches(k)) return h.value();
+		}
+		throw std::runtime_error("header " + k + " not found");
+	}
+
+	request &
+	operator<<(const header &h) {
+		headers_.push_back(h);
+		return *this;
+	}
 
 protected:
 	/** e.g. 'GET', 'POST' */
