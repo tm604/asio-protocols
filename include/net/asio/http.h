@@ -289,7 +289,7 @@ public:
 	/**
 	 * Status code
 	 */
-	void method(uint16_t m) {
+	void status_code(uint16_t m) {
 		status_code_ = m;
 		on_status_code(m);
 	}
@@ -302,7 +302,7 @@ public:
 	/**
 	 * Status message
 	 */
-	void method(const std::string &m) {
+	void status_message(const std::string &m) {
 		status_message_ = m;
 		on_status_message(m);
 	}
