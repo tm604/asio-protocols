@@ -54,6 +54,10 @@ public:
  */
 class message {
 public:
+	message() = default;
+	message(const message &) = default;
+	virtual ~message() = default;
+
 	/**
 	 * Move constructor.
 	 * Note that this does not apply any existing
