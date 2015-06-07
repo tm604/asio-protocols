@@ -22,23 +22,54 @@ normalise(const std::string &in)
 	return uri;
 }
 
-BOOST_AUTO_TEST_CASE(http_request)
+request req_from_string(string in)
 {
 	request r;
-	vector<pair<string, string>> seen_headers;
-	r.on_header_added.connect([&seen_headers](const header &h) {
-		seen_headers.push_back({ h.key(), h.value() });
-	});
-	r << header("some-header", "x");
-	BOOST_CHECK_EQUAL(seen_headers.size(), 1);
-	r << header("other-header", "y");
-	BOOST_CHECK_EQUAL(seen_headers.size(), 2);
-	BOOST_CHECK_EQUAL(r.header_value("some-header"), "x");
-	BOOST_CHECK_EQUAL(seen_headers[0].first, "Some-Header");
-	BOOST_CHECK_EQUAL(seen_headers[0].second, "x");
-	BOOST_CHECK_EQUAL(r.header_value("other-header"), "y");
-	BOOST_CHECK_EQUAL(seen_headers[1].first, "Other-Header");
-	BOOST_CHECK_EQUAL(seen_headers[1].second, "y");
+	boost::algorithm::trim_left(in);
+	r.parse_data(
+		boost::regex_replace(
+			in,
+			boost::regex("\n"),
+			"\r\n",
+			boost::match_default | boost::format_all
+		)
+	);
+	return r;
+}
+
+BOOST_AUTO_TEST_CASE(http_request)
+{
+	{
+		request r;
+		vector<pair<string, string>> seen_headers;
+		r.on_header_added.connect([&seen_headers](const header &h) {
+			seen_headers.push_back({ h.key(), h.value() });
+		});
+		r << header("some-header", "x");
+		BOOST_CHECK_EQUAL(seen_headers.size(), 1);
+		r << header("other-header", "y");
+		BOOST_CHECK_EQUAL(seen_headers.size(), 2);
+		BOOST_CHECK_EQUAL(r.header_value("some-header"), "x");
+		BOOST_CHECK_EQUAL(seen_headers[0].first, "Some-Header");
+		BOOST_CHECK_EQUAL(seen_headers[0].second, "x");
+		BOOST_CHECK_EQUAL(r.header_value("other-header"), "y");
+		BOOST_CHECK_EQUAL(seen_headers[1].first, "Other-Header");
+		BOOST_CHECK_EQUAL(seen_headers[1].second, "y");
+	}
+	{
+		auto r = req_from_string(R"(
+GET / HTTP/1.1
+Host: example.com
+Server: nginx
+
+)");
+		BOOST_CHECK_EQUAL(r.method(), "GET");
+		BOOST_CHECK_EQUAL(r.request_path(), "/");
+		BOOST_CHECK_EQUAL(r.version(), "HTTP/1.1");
+		BOOST_CHECK_EQUAL(r.header_count(), 2);
+		BOOST_CHECK_EQUAL(r.header_value("Host"), "example.com");
+		BOOST_CHECK_EQUAL(r.header_value("Server"), "nginx");
+	}
 }
 
 BOOST_AUTO_TEST_CASE(header_normalization)

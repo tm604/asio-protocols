@@ -3,6 +3,7 @@
 #include <vector>
 #include <boost/regex.hpp>
 #include <boost/signals2.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace net {
 
@@ -74,24 +75,116 @@ public:
  */
 class request {
 public:
+	request() = default;
+	request(const request &) = default;
 
+	/**
+	 * Move constructor.
+	 * Note that this does not apply any existing
+	 * signal handlers. I think that's probably a bug.
+	 */
+	request(
+		request &&src
+	):method_(std::move(src.method_)),
+	  version_(std::move(src.version_)),
+	  request_path_(std::move(src.request_path_)),
+	  headers_(std::move(src.headers_))
+	{
+	}
+
+	virtual ~request() = default;
+
+	/**
+	 * Parse a full HTTP request from the given string.
+	 * Mainly for use when testing.
+	 */
+	void
+	parse_data(const std::string &in)
+	{
+		/** FIXME make this constexpr + char* ? */
+		const std::string line_sep = "\r\n";
+
+		auto end = in.find(line_sep);
+		if(end == std::string::npos)
+			throw std::runtime_error("Invalid request line");
+
+		/* We have the first line, extract method/path/version */
+		parse_request_line(in.substr(0, end));
+
+		size_t start;
+		while(true) {
+			start = end + line_sep.size();
+			end = in.find(line_sep, start);
+			if(end == std::string::npos)
+				throw std::runtime_error("Invalid data while parsing headers");
+			if(start == end)
+				break;
+			else
+				parse_header_line(in.substr(start, end - start));
+		}
+	}
+
+	void
+	parse_request_line(const std::string &in)
+	{
+		size_t first = 0;
+		size_t next = in.find(" ");
+		if(std::string::npos == next)
+			throw std::runtime_error("No request method found");
+		method(in.substr(first, next - first));
+
+		first = next + 1;
+		next = in.find(" ", first);
+		if(std::string::npos == next)
+			throw std::runtime_error("No request path found");
+		request_path(in.substr(first, next - first));
+
+		/* Assume the rest of the line is a version.
+		 * We don't apply any checks at this point,
+		 * although technically we really should at
+		 * least look for 'HTTP/something' making
+		 * this accept anything may be useful for non-HTTP
+		 * protocols in future.
+		 */
+		version(in.substr(next + 1));
+	}
+
+	void
+	parse_header_line(const std::string &in)
+	{
+		size_t next = in.find_first_of(":");
+		if(std::string::npos == next)
+			throw std::runtime_error("No header name found");
+
+		auto k = in.substr(0, next);
+		auto v = in.substr(next + 1);
+		boost::algorithm::trim(v);
+		*this << header(k, v);
+	}
+
+	/**
+	 * Sets the HTTP request method.
+	 */
 	void method(const std::string &m) {
 		method_ = m;
 		on_method(m);
 	}
-	const std::string &method(const std::string &m) const { return method_; }
+	/**
+	 * Returns the current HTTP request method.
+	 */
+	const std::string &method() const { return method_; }
 
 	void version(const std::string &m) {
 		version_ = m;
 		on_version(m);
 	}
-	const std::string &version(const std::string &m) const { return version_; }
+	const std::string &version() const { return version_; }
 
 	void request_path(const std::string &m) {
 		request_path_ = m;
 		on_request_path(m);
 	}
-	const std::string &request_path(const std::string &m) const { return request_path_; }
+	const std::string &request_path() const { return request_path_; }
 
 	size_t header_count() const { return headers_.size(); }
 
