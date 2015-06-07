@@ -89,14 +89,15 @@ public:
 			end = in.find(line_sep, start);
 			if(end == std::string::npos)
 				throw std::runtime_error("Invalid data while parsing headers");
-			if(start == end)
+			if(start == end) {
 				break;
-			else
+			} else {
 				parse_header_line(in.substr(start, end - start));
+			}
 		}
 	}
 
-	virtual parse_initial_line(const std::string &in) = 0;
+	virtual void parse_initial_line(const std::string &in) = 0;
 
 	virtual void
 	parse_header_line(const std::string &in)
@@ -179,37 +180,7 @@ public:
 
 	virtual ~request() = default;
 
-	/**
-	 * Parse a full HTTP request from the given string.
-	 * Mainly for use when testing.
-	 */
-	void
-	parse_data(const std::string &in)
-	{
-		/** FIXME make this constexpr + char* ? */
-		const std::string line_sep = "\r\n";
-
-		auto end = in.find(line_sep);
-		if(end == std::string::npos)
-			throw std::runtime_error("Invalid request line");
-
-		/* We have the first line, extract method/path/version */
-		parse_request_line(in.substr(0, end));
-
-		size_t start;
-		while(true) {
-			start = end + line_sep.size();
-			end = in.find(line_sep, start);
-			if(end == std::string::npos)
-				throw std::runtime_error("Invalid data while parsing headers");
-			if(start == end)
-				break;
-			else
-				parse_header_line(in.substr(start, end - start));
-		}
-	}
-
-	virtual
+	virtual void
 	parse_initial_line(const std::string &in) override
 	{
 		size_t first = 0;
@@ -289,8 +260,8 @@ public:
 
 	virtual ~response() = default;
 
-	void
-	parse_initial_line(const std::string &in)
+	virtual void
+	parse_initial_line(const std::string &in) override
 	{
 		size_t first = 0;
 		size_t next = in.find(" ");
