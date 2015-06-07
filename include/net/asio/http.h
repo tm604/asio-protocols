@@ -102,6 +102,11 @@ public:
 	virtual void
 	parse_header_line(const std::string &in)
 	{
+		if(in.empty()) {
+			on_header_end();
+			return;
+		}
+
 		size_t next = in.find_first_of(":");
 		if(std::string::npos == next)
 			throw std::runtime_error("No header name found");
@@ -140,6 +145,7 @@ public:
 	boost::signals2::signal<void(const header &)> on_header_added;
 	boost::signals2::signal<void(const header &)> on_header_removed;
 	boost::signals2::signal<void(const std::string &)> on_version;
+	boost::signals2::signal<void()> on_header_end;
 
 protected:
 	/** Typically 'HTTP/1.1' */
