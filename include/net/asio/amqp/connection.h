@@ -6,7 +6,6 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/signals2.hpp>
-#include <cps/future.h>
 
 namespace net {
 

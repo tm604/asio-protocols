@@ -106,15 +106,15 @@ public:
 
 virtual ~client() { }
 
-	std::shared_ptr<cps::leaf_future<std::shared_ptr<net::amqp::connection>>>
+	std::shared_ptr<cps::future<std::shared_ptr<net::amqp::connection>>>
 	connect(
 		const connection_details &cd
 	)
 	{
 		using boost::asio::ip::tcp;
 		auto self = shared_from_this();
-		std::shared_ptr<cps::leaf_future<std::shared_ptr<net::amqp::connection>>>
-		 f = cps::leaf_future<std::shared_ptr<net::amqp::connection>>::create();
+		std::shared_ptr<cps::future<std::shared_ptr<net::amqp::connection>>>
+		 f = cps::future<std::shared_ptr<net::amqp::connection>>::create_shared();
 
 		try {
 			auto resolver = std::make_shared<tcp::resolver>(service_);
