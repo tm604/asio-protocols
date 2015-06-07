@@ -129,7 +129,7 @@ public:
 		throw std::runtime_error("header " + k + " not found");
 	}
 
-	virtual request &
+	virtual message &
 	operator<<(const header &h) {
 		headers_.push_back(h);
 		on_header_added(h);
