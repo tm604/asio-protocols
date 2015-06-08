@@ -124,6 +124,11 @@ public:
 		*this << header(k, v);
 	}
 
+	virtual void
+	parse_body(const std::string &in)
+	{
+	}
+
 	virtual void version(const std::string &m) {
 		version_ = m;
 		on_version(m);
@@ -341,6 +346,9 @@ protected:
 	uint16_t status_code_;
 	/** e.g. 'OK' */
 	std::string status_message_;
+};
+
+class transport {
 };
 
 /**
