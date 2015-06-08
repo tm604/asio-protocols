@@ -90,11 +90,18 @@ public:
 			if(end == std::string::npos)
 				throw std::runtime_error("Invalid data while parsing headers");
 			if(start == end) {
+				on_header_end();
 				break;
 			} else {
 				parse_header_line(in.substr(start, end - start));
 			}
 		}
+
+		/* Delegate to body handler - T-E and Content-Length
+		 * are mostly responsible for determining actual body
+		 * content/presence here.
+		 */
+		parse_body(in.substr(start + line_sep.size()));
 	}
 
 	virtual void parse_initial_line(const std::string &in) = 0;
