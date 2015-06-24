@@ -150,7 +150,8 @@ private:
 public:
     connection(
 		std::shared_ptr<boost::asio::ip::tcp::socket> sock,
-		boost::asio::io_service &srv
+		boost::asio::io_service &srv,
+                const connection_details &cd
 	):active_{false},
 	  writing_{false},
 	  outgoing_{ },
@@ -161,10 +162,10 @@ public:
 		std::make_shared<AMQP::Connection>(
 			this,
 			AMQP::Login(
-				"guest",
-				"guest"
+				cd.username(),
+				cd.password()
 			),
-			"/"
+			cd.vhost()
 		)
 	  )
 	{
