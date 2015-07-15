@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 PROJECT(asio-protocols)
-
+option(USE_CLANG "build application with clang" OFF)
+if(USE_CLANG)
+	set(CMAKE_CXX_COMPILER "/usr/bin/clang++-3.6")
+endif()
 enable_testing()
 set (VERSION_MAJOR 1)
 set (VERSION_MINOR 0)
