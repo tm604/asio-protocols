@@ -2,16 +2,19 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 PROJECT(asio-protocols)
+set (VERSION_MAJOR 1)
+set (VERSION_MINOR 0)
+set (VERSION_PATCH 4)
+set (PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+set (PROJECT_VERSION_REVISION 1)
+
 option(USE_CLANG "build application with clang" OFF)
 if(USE_CLANG)
 	set(CMAKE_CXX_COMPILER "/usr/bin/clang++-3.6")
 endif()
+include(set_cxx_norm.cmake)
+set_cxx_norm(${CXX_NORM_CXX11})
 enable_testing()
-set (VERSION_MAJOR 1)
-set (VERSION_MINOR 0)
-set (VERSION_PATCH 3)
-set (PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-set (PROJECT_VERSION_REVISION 2)
 
 set(Protocols_LIBRARY asio-protocols)
 
@@ -28,6 +31,8 @@ find_package(Future REQUIRED)
 find_package(AMQP REQUIRED)
 include_directories(${AMQP_INCLUDE_DIR})
 
+add_subdirectory(test)
+
 add_library(
 	${Protocols_LIBRARY}
 	src/buffer.cpp
@@ -35,66 +40,8 @@ add_library(
 	src/sink.cpp
 	src/stream.cpp
 	src/amqp.cpp
-	src/http.cpp
+	#	src/http.cpp
 )
-
-add_executable(
-	stream_tests
-	tests/stream.cpp
-)
-
-target_link_libraries(
-	stream_tests
-	${Protocols_LIBRARY}
-	${Boost_LIBRARIES}
-	${OPENSSL_LIBRARIES}
-	${OPENSSL_CRYPTO_LIBRARY}
-	${OPENSSL_SSL_LIBRARY}
-	z
-)
-if(WIN32)
-	target_link_libraries(stream_tests wsock32 ws2_32)
-endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-add_executable(
-	amqp_tests
-	src/amqp_tests.cpp
-)
-
-target_link_libraries(
-	amqp_tests
-	${Protocols_LIBRARY}
-	${AMQP_LIBRARY}
-	${Boost_LIBRARIES}
-	${OPENSSL_LIBRARIES}
-	${OPENSSL_CRYPTO_LIBRARY}
-	${OPENSSL_SSL_LIBRARY}
-	z
-)
-if(WIN32)
-	target_link_libraries(amqp_tests wsock32 ws2_32)
-endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-add_executable(
-	http_tests
-	tests/http.cpp
-)
-
-target_link_libraries(
-	http_tests
-	${Protocols_LIBRARY}
-	${Boost_LIBRARIES}
-	${OPENSSL_LIBRARIES}
-	${OPENSSL_CRYPTO_LIBRARY}
-	${OPENSSL_SSL_LIBRARY}
-	z
-)
-if(WIN32)
-	target_link_libraries(http_tests wsock32 ws2_32)
-endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 install(
 	DIRECTORY include/
@@ -106,10 +53,6 @@ install(
 )
 
 include (CTest)
-
-add_test (amqp_tests amqp_tests --log_level=all --log_format=XML --log_sink=amqp_tests.xml)
-add_test (http_tests http_tests --log_level=all --log_format=XML --log_sink=http_tests.xml)
-add_test (stream_tests stream_tests --log_level=all --log_format=XML --log_sink=stream_tests.xml)
 
 include (InstallRequiredSystemLibraries)
 set (CPACK_PACKAGE_NAME "libasio-protocols")
