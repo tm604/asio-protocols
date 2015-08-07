@@ -26,7 +26,8 @@ public:
 	response(
 		http::request &&req
 	):request_(std::move(req)),
-	  completion_(cps::future<uint16_t>::create_shared())
+	  completion_(cps::future<uint16_t>::create_shared()),
+	  stall_timeout_{ 30.0f }
 	{
 	}
 
@@ -42,7 +43,8 @@ public:
 	):message(std::move(src)),
 	  status_code_(std::move(src.status_code_)),
 	  status_message_(std::move(src.status_message_)),
-	  completion_(std::move(src.completion_))
+	  completion_(std::move(src.completion_)),
+	  stall_timeout_(std::move(src.stall_timeout_))
 	{
 	}
 

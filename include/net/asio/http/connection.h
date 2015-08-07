@@ -223,9 +223,10 @@ public:
 	{
 		if(!res_) return;
 		auto self = shared_from_this();
-		auto target = std::chrono::duration<uint64_t, std::ratio<1, 1000>>(
-			static_cast<uint64_t>(res_->stall_timeout() * 1000.0f)
+		auto target = std::chrono::milliseconds(
+			static_cast<long>(res_->stall_timeout() * 1000.0f)
 		);
+		// std::cout << "Will wait " << target.count() << "s for " << std::to_string(res_->stall_timeout()) << "\n";
 		if(!timer_) {
 			timer_ = std::make_shared<boost::asio::high_resolution_timer>(
 				service_
