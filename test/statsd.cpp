@@ -52,6 +52,7 @@ class server {
 public:
 	server() = default;
 
+	/** Returns true if we have any information about the given key */
 	bool has(const std::string &k) const { return items_.count(k) > 0; }
 	const stored_item &key(const std::string &k) const { return items_.at(k); }
 
@@ -93,10 +94,13 @@ class statsd_server : public std::enable_shared_from_this<statsd_server> {
 public:
 	statsd_server(
 		boost::asio::io_service &service
-	):socket_(service, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)),
+	):endpoint_{ boost::asio::ip::udp::v4(), 0 },
+	  socket_{ service, endpoint_ },
 	  max_length_{1024}
 	{
 	}
+
+	uint16_t port() const { return endpoint_.port(); }
 
 	void on_packet(const std::string &in) {
 		std::cout << "Incoming packet: " << in << std::endl;
@@ -132,8 +136,8 @@ public:
 	}
 
 private:
-	boost::asio::ip::udp::socket socket_;
 	boost::asio::ip::udp::endpoint endpoint_;
+	boost::asio::ip::udp::socket socket_;
 	size_t max_length_;
 };
 
@@ -145,7 +149,7 @@ public:
 	statsd_client(
 		boost::asio::io_service &service
 	):socket_(service, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)),
-	  max_length_{1024}
+	  max_length_{4096}
 	{
 	}
 
@@ -177,8 +181,8 @@ private:
 	size_t max_length_;
 };
 
+#if 0
 SCENARIO("statsd server") {
-	for(int i = 0; i < 2; ++i) {
 	using namespace net::protocol;
 	GIVEN("a statsd server instance") {
 		auto srv = statsd::server();
@@ -198,5 +202,15 @@ SCENARIO("statsd server") {
 			}
 		}
 	}
+}
+#endif
+
+SCENARIO("UDP handling", "[statsd][udp]") {
+	boost::asio::io_service iosrv;
+	GIVEN("a statsd server instance") {
+		auto srv = statsd_server(iosrv);
+		CHECK(srv.port() > 0);
+		std::cout << srv.port() << "\n";
+		iosrv.run();
 	}
 }
