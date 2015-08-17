@@ -1,5 +1,6 @@
 #include "catch.hpp"
 #include <map>
+#include <iostream>
 #include <functional>
 
 #include <boost/asio.hpp>
