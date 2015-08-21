@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -25,7 +26,9 @@ public:
 	{
 	}
 
-	virtual ~tcp() { std::cerr << "~tcp conn " << (void *)this << "\n"; }
+	virtual ~tcp() {
+		// std::cerr << "~tcp conn " << (void *)this << "\n";
+	}
 
 	std::shared_ptr<
 		tcp
@@ -194,10 +197,10 @@ public:
 	}
 
 	virtual void close() override {
-		std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
+		// std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
 		bool is_closed = false;
 		while(!closed_.compare_exchange_weak(is_closed, true) && !is_closed) {
-			std::cerr << "someone else is doing the close() for " << (void *)this << ", retrying: " << std::boolalpha << is_closed << ", " << closed_ << "\n";
+			// std::cerr << "someone else is doing the close() for " << (void *)this << ", retrying: " << std::boolalpha << is_closed << ", " << closed_ << "\n";
 		}
 		// We can skip the rest if something else already won the close
 		if(is_closed) return;
@@ -207,11 +210,11 @@ public:
 		boost::system::error_code ec;
 		socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
 		if(ec) {
-			std::cerr << "Failed to shut down: " << ec.message() << "\n";
+			std::cerr << "Failed to shut down HTTP socket: " << ec.message() << "\n";
 		}
 		socket_->close(ec);
 		if(ec) {
-			std::cerr << "Failed to close: " << ec.message() << "\n";
+			// std::cerr << "Failed to close: " << ec.message() << "\n";
 		}
 	}
 

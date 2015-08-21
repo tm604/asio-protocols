@@ -37,7 +37,9 @@ public:
 #endif
 	}
 
-	virtual ~tls() { std::cerr << "~tls conn " << (void *)this << "\n"; }
+	virtual ~tls() {
+		// std::cerr << "~tls conn " << (void *)this << "\n";
+	}
 
 	std::shared_ptr<
 		tls
@@ -224,10 +226,10 @@ public:
 	}
 
 	virtual void close() override {
-		std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
+		// std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
 		bool is_closed = false;
 		while(!closed_.compare_exchange_weak(is_closed, true) && !is_closed) {
-			std::cerr << "someone else is doing the close() for " << (void *)this << ", retrying: " << std::boolalpha << is_closed << ", " << closed_ << "\n";
+			// std::cerr << "someone else is doing the close() for " << (void *)this << ", retrying: " << std::boolalpha << is_closed << ", " << closed_ << "\n";
 		}
 		// We can skip the rest if something else already won the close
 		if(is_closed) return;
@@ -240,7 +242,7 @@ public:
 		socket_->async_shutdown(
 			[sock](const boost::system::error_code &ec) {
 				if(ec) {
-					std::cerr << "Failed to shut down: " << ec.message() << "\n";
+					std::cerr << "Failed to shut down HTTPS socket: " << ec.message() << "\n";
 				}
 				sock->lowest_layer().close();
 			}

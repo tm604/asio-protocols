@@ -221,31 +221,30 @@ public:
 	void
 	extend_timer()
 	{
-		if(!res_) return;
 		auto self = shared_from_this();
 		auto target = std::chrono::milliseconds(
-			static_cast<long>(res_->stall_timeout() * 1000.0f)
+			static_cast<long>((res_ ? res_->stall_timeout() : 5.0f) * 1000.0f)
 		);
 		// std::cout << "Will wait " << target.count() << "s for " << std::to_string(res_->stall_timeout()) << "\n";
 		if(!timer_) {
 			timer_ = std::make_shared<boost::asio::high_resolution_timer>(
 				service_
 			);
-			timer_->expires_from_now(target);
-			timer_->async_wait([self](const boost::system::error_code &ec) {
-				if(ec) {
-					/* Timer was cancelled */
-				} else {
-					/* Timer has expired */
-					if(self->res_ && !self->res_->completion()->is_ready())
-						self->res_->completion()->fail("Timer expired");
-
-					self->close();
-				}
-			});
-		} else {
-			timer_->expires_from_now(target);
 		}
+		timer_->expires_from_now(target);
+		timer_->async_wait([self](const boost::system::error_code &ec) {
+			if(ec == boost::asio::error::operation_aborted) {
+				/* Timer was cancelled */
+				// std::cerr << "Timer cancelled/extended\n";
+			} else {
+				/* Timer has expired */
+				// std::cerr << "Timer expired\n";
+				if(self->res_ && !self->res_->completion()->is_ready())
+					self->res_->completion()->fail("Timer expired");
+
+				self->close();
+			}
+		});
 	}
 
 	/**
