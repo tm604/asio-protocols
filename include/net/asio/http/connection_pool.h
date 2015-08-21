@@ -127,7 +127,7 @@ public:
 	remove(const std::shared_ptr<connection> &conn)
 	{
 		std::lock_guard<std::mutex> guard { mutex_ };
-		std::cerr << "remove conn " << (void *)conn.get() << "\n";
+		// std::cerr << "remove conn " << (void *)conn.get() << "\n";
 		connections_.erase(
 			std::remove_if(
 				begin(connections_),
@@ -169,7 +169,7 @@ public:
 			});
 			return;
 		}
-		std::cerr << "We have waiting connections but no slots\n";
+		// std::cerr << "We have waiting connections but no slots\n";
 	}
 
 private:

@@ -37,7 +37,7 @@ public:
 	{
 		using boost::asio::ip::tcp;
 		if(already_active_) {
-			std::cerr << "Request called but we think we are currently active\n";
+			// std::cerr << "Request called but we think we are currently active\n";
 		}
 		already_active_ = true;
 		auto self = shared_from_this();
@@ -54,7 +54,7 @@ public:
 				const tcp::resolver::iterator ei
 			) {
 				if(ec) {
-					std::cerr << "Resolve failed: " << ec.message() << "\n";
+					// std::cerr << "Resolve failed: " << ec.message() << "\n";
 				} else {
 					// std::cout << "Connecting\n";
 					self->connect(ei)->then([self](bool) {
@@ -67,7 +67,9 @@ public:
 		);
 	}
 
-	virtual ~connection() { std::cerr << "~connection " << (void *)this << "\n"; }
+	virtual ~connection() {
+		// std::cerr << "~connection " << (void *)this << "\n";
+	}
 
 	virtual
 	std::shared_ptr<
@@ -104,7 +106,7 @@ public:
 			self->extend_timer();
 			// std::cout << "wrote " << bytes << " bytes, expected to write " << expected << " bytes\n";
 		})->on_fail([self](const std::string &err) {
-			std::cerr << "Error writing: " << err << "\n";
+			// std::cerr << "Error writing: " << err << "\n";
 			self->close();
 			auto f = self->res_->completion();
 			if(f->is_ready()) return;
@@ -144,7 +146,7 @@ public:
 			self->res_->parse_initial_line(line);
 			self->read_next_header();
 		})->on_fail([self](const std::string &err) {
-			std::cerr << "Error reading: " << err << "\n";
+			// std::cerr << "Error reading: " << err << "\n";
 			self->close();
 			auto f = self->res_->completion();
 			if(f->is_ready()) return;
@@ -170,8 +172,8 @@ public:
 				self->res_->on_header_end();
 				self->read_next_body_chunk();
 			}
-		})->on_fail([](const std::string &err) {
-			std::cerr << "Error reading header: " << err << "\n";
+		// })->on_fail([](const std::string &err) {
+			// std::cerr << "Error reading header: " << err << "\n";
 		});
 	}
 
@@ -186,7 +188,7 @@ public:
 
 	void extract_next_body_chunk(const std::string &data) {
 		if(expected_bytes_ != data.size()) {
-			std::cerr << "Size mismatch: expected " << expected_bytes_ << ", actual content was " << data.size() << " bytes\n";
+			// std::cerr << "Size mismatch: expected " << expected_bytes_ << ", actual content was " << data.size() << " bytes\n";
 		}
 		// std::cout << "all good - body is " << data.size() << " bytes\n";
 		auto self = shared_from_this();

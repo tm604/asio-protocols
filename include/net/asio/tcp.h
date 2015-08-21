@@ -279,12 +279,12 @@ public:
 			*socket,
 			[self, socket](const boost::system::error_code &ec) {
 				if (!self->acceptor_.is_open()) {
-					std::cerr << "This acceptor is not open, so we should not be called?\n";
+					// std::cerr << "This acceptor is not open, so we should not be called?\n";
 					return;
 				}
 
 				if(ec) {
-					std::cerr << "New connection\n";
+					// std::cerr << "New connection\n";
 					self->connections_.push_back(std::make_shared<stream>(std::move(socket), self));
 				}
 				self->accept();

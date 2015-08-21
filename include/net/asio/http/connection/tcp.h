@@ -210,7 +210,7 @@ public:
 		boost::system::error_code ec;
 		socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
 		if(ec) {
-			std::cerr << "Failed to shut down HTTP socket: " << ec.message() << "\n";
+			// std::cerr << "Failed to shut down HTTP socket: " << ec.message() << "\n";
 		}
 		socket_->close(ec);
 		if(ec) {

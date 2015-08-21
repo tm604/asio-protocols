@@ -242,7 +242,7 @@ public:
 		socket_->async_shutdown(
 			[sock](const boost::system::error_code &ec) {
 				if(ec) {
-					std::cerr << "Failed to shut down HTTPS socket: " << ec.message() << "\n";
+					// std::cerr << "Failed to shut down HTTPS socket: " << ec.message() << "\n";
 				}
 				sock->lowest_layer().close();
 			}
