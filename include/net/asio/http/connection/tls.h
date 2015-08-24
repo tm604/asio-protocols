@@ -143,7 +143,7 @@ public:
 					auto start = boost::asio::buffers_begin(b);
 					if(bytes < delim_size) {
 						if(!f->is_ready())
-							f->fail("short read iin read_delimited");
+							f->fail("short read in read_delimited");
 					} else {
 						std::string str {
 							start,
@@ -218,6 +218,7 @@ public:
 						f->fail(ec.message());
 				} else {
 					self->extend_timer();
+					self->handle_response();
 					f->done(true);
 				}
 			}
@@ -227,12 +228,20 @@ public:
 
 	virtual void close() override {
 		// std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
+		valid_ = false;
+		if(closed_) {
+			// std::cerr << "Attempting to close twice for " << static_cast<void *>(this) << "\n";
+			return;
+		}
+		closed_ = true;
+#if 0
 		bool is_closed = false;
-		while(!closed_.compare_exchange_weak(is_closed, true) && !is_closed) {
+		while(!closed_.compare_exchange_strong(is_closed, true) && !is_closed) {
 			// std::cerr << "someone else is doing the close() for " << (void *)this << ", retrying: " << std::boolalpha << is_closed << ", " << closed_ << "\n";
 		}
 		// We can skip the rest if something else already won the close
 		if(is_closed) return;
+#endif
 
 		cancel_timer();
 		remove();

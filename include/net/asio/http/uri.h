@@ -138,9 +138,16 @@ public:
 	uint16_t port() const { return port_; }
 
 	/** Returns true if the port used for this URI would be the default for the scheme */
-	bool is_default_port() const { return port_for_scheme(scheme_) == port_; }
+	bool is_default_port() const {
+		try {
+			return port_for_scheme(scheme_) == port_;
+		} catch(const std::runtime_error &e) {
+			return false;
+		}
+	}
 
 	static uint16_t port_for_scheme(const std::string &scheme) {
+		/* TODO hey this looks a lot like the information we'd get from /etc/services and GAI */
 		if(scheme == "amqp") return 5672;
 		else if(scheme == "amqps") return 5671;
 		else if(scheme == "http") return 80;

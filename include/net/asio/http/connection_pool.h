@@ -58,27 +58,30 @@ public:
 
 		/* Try the items in the available queue - some may have expired already */
 		while(!available_.empty()) {
-			// std::cout << "Have available conn, returning that\n";
 			auto conn = available_.front().lock();
 			available_.pop();
-			if(conn)
+			if(conn && conn->is_valid()) {
+				// std::cerr << "Have available conn " << static_cast<void*>(conn.get()) << ", returning that\n";
 				return cps::future<std::shared_ptr<connection>>::create_shared()->done(conn);
+			} else {
+				// std::cerr << "Item in available list is no longer valid, dropping it\n";
+			}
 		}
 
 		/* Next option: try a new connection */
 		if(!limit_connections_ || connections_.size() < max_connections_) {
-			// std::cout << "Can create new conn, doing so\n";
+			// std::cerr << "Can create new conn, doing so\n";
 			auto conn = connect();
 			connections_.push_back(conn);
 			return conn;
 		} else {
 			/* Finally, queue the request until we have an endpoint that can deal with it */
-			// std::cout << "Need to wait\n";
+			// std::cerr << "Need to wait\n";
 			auto f = cps::future<std::shared_ptr<connection>>::create_shared();
 			auto start = std::chrono::high_resolution_clock::now();
 			next_.push([f, start](const std::shared_ptr<connection> &conn) {
 				auto elapsed = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - start);
-				// std::cout << "Waiting over - took " << elapsed.count() << "s\n";
+				// std::cerr << "Waiting over - took " << elapsed.count() << "s\n";
 				f->done(conn);
 			});
 			return f;
@@ -105,6 +108,7 @@ public:
 	void
 	release(std::shared_ptr<connection> conn)
 	{
+		// std::cerr << "Releasing " << static_cast<void *>(conn.get()) << "\n";
 		std::function<void(std::shared_ptr<connection>)> code;
 		{
 			std::lock_guard<std::mutex> guard { mutex_ };
@@ -126,6 +130,7 @@ public:
 	void
 	remove(const std::shared_ptr<connection> &conn)
 	{
+		// std::cerr << "Removing " << static_cast<void *>(conn.get()) << "\n";
 		std::lock_guard<std::mutex> guard { mutex_ };
 		// std::cerr << "remove conn " << (void *)conn.get() << "\n";
 		connections_.erase(
@@ -152,6 +157,17 @@ public:
 			)
 		);
 
+		/* Clear out any cruft from the available list while we're at it */
+		while(!available_.empty()) {
+			auto conn = available_.front().lock();
+			if(conn && conn->is_valid()) {
+				break;
+			} else {
+				// std::cerr << "Item in available list is no longer valid, dropping it\n";
+				available_.pop();
+			}
+		}
+
 		if(next_.empty())
 			return;
 
@@ -160,7 +176,7 @@ public:
 		 * we may need to initiate a new connection to serve this request.
 		 */
 		if(!limit_connections_ || connections_.size() < max_connections_) {
-			// std::cout << "Can create new conn, doing so\n";
+			// std::cerr << "Can create new conn, doing so\n";
 			auto conn = connect();
 			connections_.push_back(conn);
 			auto self = this;
@@ -224,7 +240,7 @@ std::shared_ptr<
 >
 connection_pool::connect()
 {
-	// std::cout << "Connecting\n";
+	//std::cerr << "Connecting\n";
 	std::shared_ptr<connection> conn = endpoint_.tls()
 	? std::static_pointer_cast<connection>(
 		std::make_shared<tls>(

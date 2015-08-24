@@ -25,6 +25,7 @@ public:
 	  pool_(pool),
 	  hostname_(hostname),
 	  port_(port),
+	  valid_{ true },
 	  already_active_{ false },
 	  in_(std::make_shared<boost::asio::streambuf>()),
 	  expected_bytes_{ 0 }
@@ -55,6 +56,7 @@ public:
 			) {
 				if(ec) {
 					// std::cerr << "Resolve failed: " << ec.message() << "\n";
+					self->close();
 				} else {
 					// std::cout << "Connecting\n";
 					self->connect(ei)->then([self](bool) {
@@ -107,7 +109,6 @@ public:
 			// std::cout << "wrote " << bytes << " bytes, expected to write " << expected << " bytes\n";
 		})->on_fail([self](const std::string &err) {
 			// std::cerr << "Error writing: " << err << "\n";
-			self->close();
 			auto f = self->res_->completion();
 			if(f->is_ready()) return;
 			f->fail(err);
@@ -119,7 +120,6 @@ public:
 		 */
 		
 		// std::cout << "Streambuf size is " << in_->size() << " bytes before we start reading response\n";
-		self->handle_response();
 	}
 
 	virtual
@@ -142,15 +142,20 @@ public:
 		auto self = shared_from_this();
 		read_delimited("\x0D\x0A")->on_done([self](const std::string &line) {
 			// std::cout << "Initial line: " << line << "\n";
-			self->extend_timer();
-			self->res_->parse_initial_line(line);
-			self->read_next_header();
+			if(self->res_) {
+				self->extend_timer();
+				self->res_->parse_initial_line(line);
+				self->read_next_header();
+			} else {
+				self->close();
+			}
 		})->on_fail([self](const std::string &err) {
 			// std::cerr << "Error reading: " << err << "\n";
-			self->close();
-			auto f = self->res_->completion();
-			if(f->is_ready()) return;
-			f->fail(err);
+			if(self->res_) {
+				auto f = self->res_->completion();
+				if(f->is_ready()) return;
+				f->fail(err);
+			}
 		});
 	}
 
@@ -163,17 +168,32 @@ public:
 				// std::cout << "header count now " << self->res_->header_count() << "\n";
 				self->read_next_header();
 			} else {
-				self->expected_bytes_ = static_cast<size_t>(
-					std::stoi(
-						self->res_->header_value("Content-Length")
-					)
-				);
-				// std::cout << "Content length should be " << std::to_string(self->expected_bytes_) << " bytes\n";
-				self->res_->on_header_end();
-				self->read_next_body_chunk();
+				try {
+					self->expected_bytes_ = static_cast<size_t>(
+						std::stoi(
+							self->res_->header_value("Content-Length")
+						)
+					);
+					// std::cout << "Content length should be " << std::to_string(self->expected_bytes_) << " bytes\n";
+					self->res_->on_header_end();
+					self->read_next_body_chunk();
+				} catch(const std::runtime_error &ex) {
+					/* Might not have Content-Length */
+					self->close();
+					if(self->res_) {
+						auto f = self->res_->completion();
+						if(!f->is_ready())
+							f->fail(ex.what());
+					}
+				}
 			}
-		// })->on_fail([](const std::string &err) {
+		})->on_fail([self](const std::string &err) {
 			// std::cerr << "Error reading header: " << err << "\n";
+			if(self->res_) {
+				auto f = self->res_->completion();
+				if(!f->is_ready())
+					f->fail(err);
+			}
 		});
 	}
 
@@ -183,6 +203,13 @@ public:
 		read(expected_bytes_)->on_done([self](const std::string &data) {
 			self->extend_timer();
 			self->extract_next_body_chunk(data);
+		})->on_fail([self](const std::string &err) {
+			// std::cerr << "Error reading body data: " << err << "\n";
+			if(self->res_) {
+				auto f = self->res_->completion();
+				if(!f->is_ready())
+					f->fail(err);
+			}
 		});
 	}
 
@@ -198,6 +225,7 @@ public:
 		if(res_->have_header("Connection") && res_->header_value("Connection") == "close") {
 			close();
 		} else {
+			handle_response();
 			release();
 		}
 		// std::cout << "Marking response done\n";
@@ -207,6 +235,8 @@ public:
 
 	virtual std::shared_ptr<cps::future<bool>> post_connect() {
 		auto f = cps::future<bool>::create_shared();
+		extend_timer();
+		handle_response();
 		f->done(true);
 		return f;
 	}
@@ -241,10 +271,9 @@ public:
 			} else {
 				/* Timer has expired */
 				// std::cerr << "Timer expired\n";
-				if(self->res_ && !self->res_->completion()->is_ready())
-					self->res_->completion()->fail("Timer expired");
-
 				self->close();
+				if(self->res_ && !self->res_->completion()->is_ready())
+					self->res_->completion()->fail("Timeout expired");
 			}
 		});
 	}
@@ -260,6 +289,8 @@ public:
 			timer_->cancel();
 	}
 
+	bool is_valid() const { return valid_ && !closed_; }
+
 protected:
 	/** The IO service */
 	boost::asio::io_service &service_;
@@ -269,6 +300,9 @@ protected:
 	std::string hostname_;
 	/** The target port */
 	uint16_t port_;
+	std::atomic<bool> closed_;
+	/** Flag indicating that we can be used */
+	bool valid_;
 	/** Flag indicating that we are already doing something */
 	bool already_active_;
 	/** Input buffer */

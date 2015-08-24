@@ -120,6 +120,7 @@ public:
 			[self, f, delim_size](const boost::system::error_code &ec, size_t bytes) {
 				// std::cout << "Read until - now have " << bytes << " bytes\n";
 				if(ec) {
+					// std::cerr << "Error received during read_delimited: " << ec.message() << "\n";
 					self->close();
 					if(!f->is_ready())
 						f->fail(ec.message());
@@ -127,8 +128,9 @@ public:
 					auto b = self->in_->data();
 					auto start = boost::asio::buffers_begin(b);
 					if(bytes < delim_size) {
+						// std::cerr << "Received fewer bytes than expected in read_delimited\n";
 						if(!f->is_ready())
-							f->fail("short read iin read_delimited");
+							f->fail("short read in read_delimited");
 					} else {
 						std::string str {
 							start,
@@ -192,18 +194,27 @@ public:
 	virtual std::shared_ptr<cps::future<bool>> post_connect() override {
 		auto f = cps::future<bool>::create_shared();
 		extend_timer();
+		handle_response();
 		f->done(true);
 		return f;
 	}
 
 	virtual void close() override {
 		// std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
+		valid_ = false;
+		if(closed_) {
+			// std::cerr << "Attempting to close twice for " << static_cast<void *>(this) << "\n";
+			return;
+		}
+		closed_ = true;
+#if 0
 		bool is_closed = false;
-		while(!closed_.compare_exchange_weak(is_closed, true) && !is_closed) {
+		while(!closed_.compare_exchange_strong(is_closed, true) && !is_closed) {
 			// std::cerr << "someone else is doing the close() for " << (void *)this << ", retrying: " << std::boolalpha << is_closed << ", " << closed_ << "\n";
 		}
 		// We can skip the rest if something else already won the close
 		if(is_closed) return;
+#endif
 
 		cancel_timer();
 		remove();
@@ -220,7 +231,6 @@ public:
 
 private:
 	std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
-	std::atomic<bool> closed_;
 };
 
 };
