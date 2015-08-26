@@ -61,22 +61,22 @@ public:
 			auto conn = available_.front().lock();
 			available_.pop();
 			if(conn && conn->is_valid()) {
-				// std::cerr << "Have available conn " << static_cast<void*>(conn.get()) << ", returning that\n";
+				// std::cerr << endpoint_.string() << " have available conn " << static_cast<void*>(conn.get()) << ", returning that\n";
 				return cps::future<std::shared_ptr<connection>>::create_shared()->done(conn);
-			} else {
-				// std::cerr << "Item in available list is no longer valid, dropping it\n";
+			// } else {
+			//	std::cerr << endpoint_.string() << " Item in available list is no longer valid, dropping it\n";
 			}
 		}
 
 		/* Next option: try a new connection */
 		if(!limit_connections_ || connections_.size() < max_connections_) {
-			// std::cerr << "Can create new conn, doing so\n";
+			// std::cerr << endpoint_.string() << " Can create new conn, doing so\n";
 			auto conn = connect();
 			connections_.push_back(conn);
 			return conn;
 		} else {
 			/* Finally, queue the request until we have an endpoint that can deal with it */
-			// std::cerr << "Need to wait\n";
+			// std::cerr << endpoint_.string() << " Have " << connections_.size() << " already, waiting\n";
 			auto f = cps::future<std::shared_ptr<connection>>::create_shared();
 			auto start = std::chrono::high_resolution_clock::now();
 			next_.push([f, start](const std::shared_ptr<connection> &conn) {
@@ -108,7 +108,7 @@ public:
 	void
 	release(std::shared_ptr<connection> conn)
 	{
-		// std::cerr << "Releasing " << static_cast<void *>(conn.get()) << "\n";
+		// std::cerr << endpoint_.string() << " Releasing " << static_cast<void *>(conn.get()) << "\n";
 		std::function<void(std::shared_ptr<connection>)> code;
 		{
 			std::lock_guard<std::mutex> guard { mutex_ };
@@ -132,7 +132,7 @@ public:
 	{
 		// std::cerr << "Removing " << static_cast<void *>(conn.get()) << "\n";
 		std::lock_guard<std::mutex> guard { mutex_ };
-		// std::cerr << "remove conn " << (void *)conn.get() << "\n";
+		// std::cerr << endpoint_.string() << " remove conn " << (void *)conn.get() << ", count was " << connections_.size() << "\n";
 		connections_.erase(
 			std::remove_if(
 				begin(connections_),
@@ -156,6 +156,7 @@ public:
 				}
 			)
 		);
+		// std::cerr << "removed conn " << (void *)conn.get() << ", count now " << connections_.size() << "\n";
 
 		/* Clear out any cruft from the available list while we're at it */
 		while(!available_.empty()) {
