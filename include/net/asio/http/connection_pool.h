@@ -31,7 +31,7 @@ public:
 	 :service_(service),
 	  endpoint_(details),
 	  limit_connections_{true},
-	  max_connections_{32}
+	  max_connections_{8}
 	{
 	}
 
