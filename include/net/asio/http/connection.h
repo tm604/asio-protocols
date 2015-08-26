@@ -296,6 +296,17 @@ public:
 
 	bool is_valid() const { return valid_ && !closed_; }
 
+	virtual bool already_closing() {
+		// std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
+		valid_ = false;
+		bool is_closed = false;
+		return !closed_.compare_exchange_strong(
+			is_closed,
+			true,
+			std::memory_order_seq_cst
+		);
+	}
+
 protected:
 	/** The IO service */
 	boost::asio::io_service &service_;
