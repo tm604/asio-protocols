@@ -200,21 +200,12 @@ public:
 	}
 
 	virtual void close() override {
-		// std::cerr << "close() for " << (void *)this << " - " << std::boolalpha << closed_ << "\n";
-		valid_ = false;
-		if(closed_) {
-			// std::cerr << "Attempting to close twice for " << static_cast<void *>(this) << "\n";
+		if(already_closing()) {
+			// std::cerr << "someone else is doing the close() for " << (void *)this << "\n";
 			return;
+		//} else {
+		//	std::cerr << "we get to close() for " << (void *)this << "\n";
 		}
-		closed_ = true;
-#if 0
-		bool is_closed = false;
-		while(!closed_.compare_exchange_strong(is_closed, true) && !is_closed) {
-			// std::cerr << "someone else is doing the close() for " << (void *)this << ", retrying: " << std::boolalpha << is_closed << ", " << closed_ << "\n";
-		}
-		// We can skip the rest if something else already won the close
-		if(is_closed) return;
-#endif
 
 		cancel_timer();
 		remove();
