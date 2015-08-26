@@ -33,6 +33,10 @@ public:
 	{
 	}
 
+	connection() = delete;
+	connection(const connection &src) = delete;
+	connection(connection &&src) = delete;
+
 	void request(
 		std::function<void()> code
 	)
