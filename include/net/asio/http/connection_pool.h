@@ -189,6 +189,18 @@ public:
 		// std::cerr << "We have waiting connections but no slots\n";
 	}
 
+	/**
+	 * Set limit for number of connections we'll allow in this pool.
+	 * We don't try to clean up the excess connections since our existing
+	 * timeout logic should be handling this for us anyway.
+	 */
+	virtual void max_connections(size_t n) { max_connections_ = n; }
+	/**
+	 * Set to true to use the {@link max_connections} limit. False means
+	 * we'll always open a new connection as required.
+	 */
+	virtual void limit_connections(bool limit) { limit_connections_ = limit; }
+
 private:
 	boost::asio::io_service &service_;
 	details endpoint_;
