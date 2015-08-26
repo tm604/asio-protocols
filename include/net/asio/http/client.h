@@ -17,7 +17,9 @@ public:
 	client(
 		boost::asio::io_service &service
 	)
-	 :service_(service)
+	 :service_(service),
+	  limit_connections_{ true },
+	  max_connections_{ 8 }
 	{
 	}
 
@@ -75,6 +77,8 @@ public:
 				service_,
 				details
 			);
+			pool->max_connections(max_connections_);
+			pool->limit_connections(limit_connections_);
 			endpoints_.emplace(
 				std::make_pair(
 					details,
@@ -98,9 +102,31 @@ public:
 		return details(req.uri());
 	}
 
+	virtual void
+	max_connections(size_t n)
+	{
+		std::lock_guard<std::mutex> guard { mutex_ };
+		max_connections_ = n;
+		for(auto &entry : endpoints_) {
+			entry.second->max_connections(n);
+		}
+	}
+
+	virtual void
+	limit_connections(bool limit)
+	{
+		std::lock_guard<std::mutex> guard { mutex_ };
+		limit_connections_ = limit;
+		for(auto &entry : endpoints_) {
+			entry.second->limit_connections(limit);
+		}
+	}
+
 private:
 	boost::asio::io_service &service_;
 	std::mutex mutex_;
+	bool limit_connections_;
+	size_t max_connections_;
 	/** Represents all connection pools */
 	std::unordered_map<
 		// std::reference_wrapper<
