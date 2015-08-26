@@ -25,6 +25,7 @@ public:
 	  pool_(pool),
 	  hostname_(hostname),
 	  port_(port),
+	  closed_{ false },
 	  valid_{ true },
 	  already_active_{ false },
 	  in_(std::make_shared<boost::asio::streambuf>()),
