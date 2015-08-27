@@ -61,6 +61,7 @@ virtual ~client() { }
 		try {
 			auto resolver = std::make_shared<udp::resolver>(service_);
 			auto query = std::make_shared<udp::resolver::query>(
+				udp::v4(),
 				cd.host(),
 				std::to_string(cd.port())
 			);
