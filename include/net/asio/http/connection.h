@@ -16,6 +16,10 @@ class connection_pool;
 
 class connection : virtual public std::enable_shared_from_this<connection> {
 public:
+	enum class transfer {
+		chunked = 0,
+		length = 1
+	};
 	connection(
 		boost::asio::io_service &service,
 		connection_pool &pool,
@@ -179,16 +183,33 @@ public:
 							self->res_->header_value("Content-Length")
 						)
 					);
-					// std::cout << "Content length should be " << std::to_string(self->expected_bytes_) << " bytes\n";
+					self->transfer_mode_ = transfer::length;
+					std::cout << "Content length should be " << std::to_string(self->expected_bytes_) << " bytes\n";
 					self->res_->on_header_end();
 					self->read_next_body_chunk();
 				} catch(const std::runtime_error &ex) {
-					/* Might not have Content-Length */
-					self->close();
-					if(self->res_) {
-						auto f = self->res_->completion();
-						if(!f->is_ready())
-							f->fail(ex.what());
+					try {
+						/* Might not have Content-Length, try TE instead */
+						if(std::string::npos != self->res_->header_value("Transfer-Encoding").find("chunked")) {
+							self->res_->on_header_end();
+							self->transfer_mode_ = transfer::chunked;
+							self->expected_bytes_ = 0;
+							self->read_next_body_chunk();
+						} else {
+							self->close();
+							if(self->res_) {
+								auto f = self->res_->completion();
+								if(!f->is_ready())
+									f->fail("no content-length or TE");
+							}
+						}
+					} catch(const std::runtime_error &ex) {
+						self->close();
+						if(self->res_) {
+							auto f = self->res_->completion();
+							if(!f->is_ready())
+								f->fail(ex.what());
+						}
 					}
 				}
 			}
@@ -204,18 +225,51 @@ public:
 
 	void read_next_body_chunk() {
 		auto self = shared_from_this();
-		// std::cout << "Streambuf already has " << in_->size() << " bytes, expected " << expected_bytes_ << "\n";
-		read(expected_bytes_)->on_done([self](const std::string &data) {
-			self->extend_timer();
-			self->extract_next_body_chunk(data);
-		})->on_fail([self](const std::string &err) {
-			// std::cerr << "Error reading body data: " << err << "\n";
-			if(self->res_) {
-				auto f = self->res_->completion();
-				if(!f->is_ready())
-					f->fail(err);
-			}
-		});
+		if(transfer_mode_ == transfer::chunked) {
+			read_delimited("\x0D\x0A")->on_done([self](const std::string &line) {
+				self->extend_timer();
+				auto chunk_size = static_cast<size_t>(
+					std::stoi(
+						line,
+						0,
+						16
+					)
+				);
+				if(chunk_size > 0) {
+					self->expected_bytes_ = chunk_size;
+					self->read(chunk_size + 2)->on_done([self](const std::string &data) {
+						self->res_->append_body(data.substr(0, data.size() - 2));
+						self->extend_timer();
+						self->read_next_body_chunk();
+					})->on_fail([self](const std::string &err) {
+						// std::cerr << "Error reading body data: " << err << "\n";
+						if(self->res_) {
+							auto f = self->res_->completion();
+							if(!f->is_ready())
+								f->fail(err);
+						}
+					});
+				} else {
+					self->read_delimited("\x0D\x0A")->on_done([self](const std::string &line) {
+						self->extend_timer();
+						self->extract_next_body_chunk("");
+					});
+				}
+			});
+		} else {
+			// std::cout << "Streambuf already has " << in_->size() << " bytes, expected " << expected_bytes_ << "\n";
+			read(expected_bytes_)->on_done([self](const std::string &data) {
+				self->extend_timer();
+				self->extract_next_body_chunk(data);
+			})->on_fail([self](const std::string &err) {
+				// std::cerr << "Error reading body data: " << err << "\n";
+				if(self->res_) {
+					auto f = self->res_->completion();
+					if(!f->is_ready())
+						f->fail(err);
+				}
+			});
+		}
 	}
 
 	void extract_next_body_chunk(const std::string &data) {
@@ -224,7 +278,8 @@ public:
 		}
 		// std::cout << "all good - body is " << data.size() << " bytes\n";
 		auto self = shared_from_this();
-		res_->body(data);
+		if(transfer_mode_ == transfer::length)
+			res_->body(data);
 		already_active_ = false;
 		auto r = res_;
 		if(res_->have_header("Connection") && res_->header_value("Connection") == "close") {
@@ -327,6 +382,8 @@ protected:
 	std::shared_ptr<net::http::response> res_;
 	/** Our stall timer */
 	std::shared_ptr<boost::asio::high_resolution_timer> timer_;
+	/** Chunked or content-length */
+	transfer transfer_mode_;
 	/** Bytes we're expecting to read */
 	size_t expected_bytes_;
 };

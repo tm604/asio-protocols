@@ -165,6 +165,9 @@ public:
 		body_ = in;
 		set_header("Content-Length", std::to_string(body_.size()));
 	}
+	virtual void append_body(const std::string &in) {
+		body_ += in;
+	}
 
 // Signals
 	boost::signals2::signal<void(const header &)> on_header_added;
