@@ -184,7 +184,7 @@ public:
 						)
 					);
 					self->transfer_mode_ = transfer::length;
-					std::cout << "Content length should be " << std::to_string(self->expected_bytes_) << " bytes\n";
+					// std::cout << "Content length should be " << std::to_string(self->expected_bytes_) << " bytes\n";
 					self->res_->on_header_end();
 					self->read_next_body_chunk();
 				} catch(const std::runtime_error &ex) {
