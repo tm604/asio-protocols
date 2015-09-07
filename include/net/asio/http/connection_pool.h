@@ -62,7 +62,7 @@ public:
 			available_.pop();
 			if(conn && conn->is_valid()) {
 				// std::cerr << endpoint_.string() << " have available conn " << static_cast<void*>(conn.get()) << ", returning that\n";
-				return cps::future<std::shared_ptr<connection>>::create_shared()->done(conn);
+				return cps::future<std::shared_ptr<connection>>::create_shared("available connection for " + endpoint_.string())->done(conn);
 			// } else {
 			//	std::cerr << endpoint_.string() << " Item in available list is no longer valid, dropping it\n";
 			}
@@ -77,7 +77,7 @@ public:
 		} else {
 			/* Finally, queue the request until we have an endpoint that can deal with it */
 			// std::cerr << endpoint_.string() << " Have " << connections_.size() << " already, waiting\n";
-			auto f = cps::future<std::shared_ptr<connection>>::create_shared();
+			auto f = cps::future<std::shared_ptr<connection>>::create_shared("queued connection for " + endpoint_.string());
 			auto start = std::chrono::high_resolution_clock::now();
 			next_.push([f, start](const std::shared_ptr<connection> &conn) {
 				auto elapsed = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - start);
@@ -271,7 +271,7 @@ connection_pool::connect()
 			endpoint_.port()
 		)
 	);
-	auto f = cps::future<std::shared_ptr<connection>>::create_shared();
+	auto f = cps::future<std::shared_ptr<connection>>::create_shared("new connection for " + endpoint_.string());
 	conn->request([conn, f] {
 		f->done(conn);
 	});

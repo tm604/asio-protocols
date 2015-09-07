@@ -46,7 +46,7 @@ class tls_connection : public connection {
 	}
 
 	virtual std::shared_ptr<cps::future<bool>> post_connect() override {
-		auto f = cps::future<bool>::create_shared();
+		auto f = cps::future<bool>::create_shared("https post-connect");
 		auto self = shared_from_this();
 		socket_->async_handshake(
 			boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::client,

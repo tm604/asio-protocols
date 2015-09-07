@@ -18,7 +18,7 @@ namespace http {
 class response : public message {
 public:
 	response(
-	):completion_(cps::future<uint16_t>::create_shared()),
+	):completion_(cps::future<uint16_t>::create_shared("completion for default HTTP response")),
 	  stall_timeout_{ 30.0f }
 	{
 	}
@@ -26,7 +26,7 @@ public:
 	response(
 		http::request &&req
 	):request_(std::move(req)),
-	  completion_(cps::future<uint16_t>::create_shared()),
+	  completion_(cps::future<uint16_t>::create_shared(request_.method() + " " + request_.uri().string() + " completion")),
 	  stall_timeout_{ 30.0f }
 	{
 	}

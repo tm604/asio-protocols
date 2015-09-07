@@ -38,7 +38,7 @@ virtual ~client() { }
 		using boost::asio::ip::tcp;
 		auto self = shared_from_this();
 		std::shared_ptr<cps::future<std::shared_ptr<net::amqp::connection>>>
-		 f = cps::future<std::shared_ptr<net::amqp::connection>>::create_shared();
+			f = cps::future<std::shared_ptr<net::amqp::connection>>::create_shared("MQ connection to " + cd.host());
 
 		try {
 			auto resolver = std::make_shared<tcp::resolver>(service_);
@@ -72,11 +72,11 @@ virtual ~client() { }
 					}
 				}
 			);
-		} catch(boost::system::system_error& e) {
+		} catch(const boost::system::system_error& e) {
 			f->fail(e.what());
-		} catch(std::exception& e) {
+		} catch(const std::exception& e) {
 			f->fail(e.what());
-		} catch(std::string& e) {
+		} catch(const std::string& e) {
 			f->fail(e);
 		}
 		return f;

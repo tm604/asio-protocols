@@ -63,7 +63,7 @@ public:
 		const boost::asio::ip::tcp::resolver::iterator &ei
 	) override
 	{
-		auto f = cps::future<bool>::create_shared();
+		auto f = cps::future<bool>::create_shared("https connect to " + hostname_ + ":" + std::to_string(port_));
 		auto sock = socket_;
 		// std::cout << "will connect\n";
 		auto self = shared_from_this();
@@ -99,7 +99,7 @@ public:
 	>
 	write(std::shared_ptr<std::vector<char>> data) override
 	{
-		auto f = cps::future<size_t>::create_shared();
+		auto f = cps::future<size_t>::create_shared("https write to " + hostname_ + ":" + std::to_string(port_));
 		auto self = shared_from_this();
 		boost::asio::async_write(
 			*socket_,
@@ -125,7 +125,7 @@ public:
 	>
 	read_delimited(const std::string &delim) override
 	{
-		auto f = cps::future<std::string>::create_shared();
+		auto f = cps::future<std::string>::create_shared("https read_delim from " + hostname_ + ":" + std::to_string(port_));
 		auto self = shared_from_this();
 		auto delim_size = delim.size();
 		boost::asio::async_read_until(
@@ -166,7 +166,7 @@ public:
 	>
 	read(size_t wanted) override
 	{
-		auto f = cps::future<std::string>::create_shared();
+		auto f = cps::future<std::string>::create_shared("https read(" + std::to_string(wanted) + " from " + hostname_ + ":" + std::to_string(port_));
 		if(in_->size() < wanted) {
 			auto self = shared_from_this();
 			boost::asio::async_read(
@@ -206,7 +206,7 @@ public:
 
 
 	virtual std::shared_ptr<cps::future<bool>> post_connect() override {
-		auto f = cps::future<bool>::create_shared();
+		auto f = cps::future<bool>::create_shared("https post-connect for " + hostname_ + ":" + std::to_string(port_));
 		auto self = shared_from_this();
 		extend_timer();
 		socket_->async_handshake(

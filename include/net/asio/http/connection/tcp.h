@@ -52,7 +52,7 @@ public:
 		const boost::asio::ip::tcp::resolver::iterator &ei
 	) override
 	{
-		auto f = cps::future<bool>::create_shared();
+		auto f = cps::future<bool>::create_shared("http connect to " + hostname_ + ":" + std::to_string(port_));
 		auto sock = socket_;
 		auto self = shared_from_this();
 		boost::asio::async_connect(
@@ -84,7 +84,7 @@ public:
 	>
 	write(std::shared_ptr<std::vector<char>> data) override
 	{
-		auto f = cps::future<size_t>::create_shared();
+		auto f = cps::future<size_t>::create_shared("http write to " + hostname_ + ":" + std::to_string(port_));
 		auto self = shared_from_this();
 		boost::asio::async_write(
 			*socket_,
@@ -110,7 +110,7 @@ public:
 	>
 	read_delimited(const std::string &delim) override
 	{
-		auto f = cps::future<std::string>::create_shared();
+		auto f = cps::future<std::string>::create_shared("http read_delim from " + hostname_ + ":" + std::to_string(port_));
 		auto self = shared_from_this();
 		auto delim_size = delim.size();
 		boost::asio::async_read_until(
@@ -153,7 +153,7 @@ public:
 	>
 	read(size_t wanted) override
 	{
-		auto f = cps::future<std::string>::create_shared();
+		auto f = cps::future<std::string>::create_shared("http read(" + std::to_string(wanted) + " from " + hostname_ + ":" + std::to_string(port_));
 		if(in_->size() < wanted) {
 			auto self = shared_from_this();
 			boost::asio::async_read(
@@ -192,7 +192,7 @@ public:
 	}
 
 	virtual std::shared_ptr<cps::future<bool>> post_connect() override {
-		auto f = cps::future<bool>::create_shared();
+		auto f = cps::future<bool>::create_shared("http post-connect for " + hostname_ + ":" + std::to_string(port_));
 		extend_timer();
 		handle_response();
 		f->done(true);

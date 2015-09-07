@@ -294,7 +294,7 @@ public:
 	}
 
 	virtual std::shared_ptr<cps::future<bool>> post_connect() {
-		auto f = cps::future<bool>::create_shared();
+		auto f = cps::future<bool>::create_shared("http post-connect");
 		extend_timer();
 		handle_response();
 		f->done(true);
