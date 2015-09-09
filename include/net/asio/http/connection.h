@@ -289,7 +289,8 @@ public:
 			release();
 		}
 		// std::cout << "Marking response done\n";
-		r->completion()->done(r->status_code());
+		if(!r->completion()->is_ready())
+			r->completion()->done(r->status_code());
 		// std::cout << "Done marking response done\n";
 	}
 
