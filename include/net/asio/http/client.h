@@ -15,11 +15,13 @@ namespace http {
 class client {
 public:
 	client(
-		boost::asio::io_service &service
+		boost::asio::io_service &service,
+		float stall_timeout = 30.0f
 	)
 	 :service_(service),
 	  limit_connections_{ true },
-	  max_connections_{ 8 }
+	  max_connections_{ 8 },
+	  stall_timeout_{ stall_timeout }
 	{
 	}
 
@@ -33,7 +35,8 @@ public:
 		// req.add_header(net::http::header { "Content-Length", "0" });
 		auto endpoint = endpoint_for(req);
 		auto res = std::make_shared<net::http::response>(
-			std::move(req)
+			std::move(req),
+			stall_timeout_
 		);
 		auto r = res;
 		endpoint->next()->on_done([r](std::shared_ptr<connection> conn) mutable {
@@ -53,7 +56,8 @@ public:
 		// req.add_header(net::http::header { "Content-Length", "0" });
 		auto endpoint = endpoint_for(req);
 		auto res = std::make_shared<net::http::response>(
-			std::move(req)
+			std::move(req),
+			stall_timeout_
 		);
 		auto r = res;
 		endpoint->next()->on_done([r](std::shared_ptr<connection> conn) mutable {
@@ -122,6 +126,12 @@ public:
 		}
 	}
 
+	virtual void
+	stall_timeout(float sec)
+	{
+		stall_timeout_ = sec;
+	}
+
 private:
 	boost::asio::io_service &service_;
 	std::mutex mutex_;
@@ -136,6 +146,7 @@ private:
 		details::hash,
 		details::equal
 	> endpoints_;
+	float stall_timeout_;
 };
 
 };

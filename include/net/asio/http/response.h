@@ -24,10 +24,11 @@ public:
 	}
 
 	response(
-		http::request &&req
+		http::request &&req,
+		float stall_timeout = 30.0f
 	):request_(std::move(req)),
 	  completion_(cps::future<uint16_t>::create_shared(request_.method() + " " + request_.uri().string() + " completion")),
-	  stall_timeout_{ 30.0f }
+	  stall_timeout_{ stall_timeout }
 	{
 	}
 
@@ -120,6 +121,7 @@ public:
 	 * we'll allow to pass before marking this response as failed.
 	 */
 	const float stall_timeout() const { return stall_timeout_; }
+	void stall_timeout(float sec) { stall_timeout_ = sec; }
 
 public: // Signals
 	boost::signals2::signal<void(uint16_t)> on_status_code;
