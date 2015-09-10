@@ -91,9 +91,9 @@ public:
 			boost::asio::buffer(*data),
 			[self, data, f](const boost::system::error_code &ec, size_t bytes) {
 				if(ec) {
-					self->close();
 					if(!f->is_ready())
 						f->fail(ec.message());
+					self->close();
 				} else {
 					f->done(bytes);
 				}
