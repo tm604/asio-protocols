@@ -336,6 +336,7 @@ public:
 			} else {
 				/* Timer has expired */
 				// std::cerr << "Timer expired\n";
+				self->timer_.reset();
 				self->close();
 				if(self->res_ && !self->res_->completion()->is_ready())
 					self->res_->completion()->fail("Timeout expired (" + std::to_string(target.count()) + "ms)");
