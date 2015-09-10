@@ -112,6 +112,7 @@ public:
 			s.cbegin(), s.cend()
 		);
 		res_ = std::move(res);
+		self->extend_timer();
 		auto expected = out->size();
 		write(out)->on_done([self, expected](const size_t) {
 			self->extend_timer();
