@@ -329,7 +329,7 @@ public:
 			);
 		}
 		timer_->expires_from_now(target);
-		timer_->async_wait([self](const boost::system::error_code &ec) {
+		timer_->async_wait([self, target](const boost::system::error_code &ec) {
 			if(ec) {
 				/* Timer was cancelled */
 				// std::cerr << "Timer cancelled/extended\n";
@@ -338,7 +338,7 @@ public:
 				// std::cerr << "Timer expired\n";
 				self->close();
 				if(self->res_ && !self->res_->completion()->is_ready())
-					self->res_->completion()->fail("Timeout expired");
+					self->res_->completion()->fail("Timeout expired (" + std::to_string(target.count()) + "ms)");
 			}
 		});
 	}
