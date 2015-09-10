@@ -282,16 +282,19 @@ public:
 			res_->body(data);
 		already_active_ = false;
 		auto r = res_;
-		if(res_->have_header("Connection") && res_->header_value("Connection") == "close") {
+		res_.reset();
+		if(r->have_header("Connection") && r->header_value("Connection") == "close") {
+			if(!r->completion()->is_ready())
+				r->completion()->done(r->status_code());
 			close();
 		} else {
 			handle_response();
 			release();
+			// std::cout << "Marking response done\n";
+			if(!r->completion()->is_ready())
+				r->completion()->done(r->status_code());
+			// std::cout << "Done marking response done\n";
 		}
-		// std::cout << "Marking response done\n";
-		if(!r->completion()->is_ready())
-			r->completion()->done(r->status_code());
-		// std::cout << "Done marking response done\n";
 	}
 
 	virtual std::shared_ptr<cps::future<bool>> post_connect() {
