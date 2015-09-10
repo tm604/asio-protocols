@@ -329,7 +329,7 @@ public:
 		}
 		timer_->expires_from_now(target);
 		timer_->async_wait([self](const boost::system::error_code &ec) {
-			if(ec == boost::asio::error::operation_aborted) {
+			if(ec) {
 				/* Timer was cancelled */
 				// std::cerr << "Timer cancelled/extended\n";
 			} else {
