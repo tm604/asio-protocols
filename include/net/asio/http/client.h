@@ -26,24 +26,31 @@ public:
 	}
 
 	/**
+	 * Arbitrary HTTP request. Requires a valid method on the HTTP request instance.
+	 */
+	std::shared_ptr<net::http::response>
+	request(net::http::request &&req)
+	{
+		auto endpoint = endpoint_for(req);
+		auto res = std::make_shared<net::http::response>(
+			std::move(req),
+			stall_timeout_
+		);
+		endpoint->next()->on_done([res](std::shared_ptr<connection> conn) {
+			// std::cout << "Have endpoint";
+			conn->write_request(res);
+		});
+		return res;
+	}
+
+	/**
 	 * GET request.
 	 */
 	std::shared_ptr<net::http::response>
 	GET(net::http::request &&req)
 	{
 		req.method("GET");
-		// req.add_header(net::http::header { "Content-Length", "0" });
-		auto endpoint = endpoint_for(req);
-		auto res = std::make_shared<net::http::response>(
-			std::move(req),
-			stall_timeout_
-		);
-		auto r = res;
-		endpoint->next()->on_done([r](std::shared_ptr<connection> conn) mutable {
-			// std::cout << "Have endpoint";
-			conn->write_request(std::move(r));
-		});
-		return res;
+		return request(std::move(req));
 	}
 
 	/**
@@ -53,18 +60,37 @@ public:
 	POST(net::http::request &&req)
 	{
 		req.method("POST");
-		// req.add_header(net::http::header { "Content-Length", "0" });
-		auto endpoint = endpoint_for(req);
-		auto res = std::make_shared<net::http::response>(
-			std::move(req),
-			stall_timeout_
-		);
-		auto r = res;
-		endpoint->next()->on_done([r](std::shared_ptr<connection> conn) mutable {
-			// std::cout << "Have endpoint";
-			conn->write_request(std::move(r));
-		});
-		return res;
+		return request(std::move(req));
+	}
+
+	/**
+	 * POST request.
+	 */
+	std::shared_ptr<net::http::response>
+	PUT(net::http::request &&req)
+	{
+		req.method("PUT");
+		return request(std::move(req));
+	}
+
+	/**
+	 * HEAD request.
+	 */
+	std::shared_ptr<net::http::response>
+	HEAD(net::http::request &&req)
+	{
+		req.method("HEAD");
+		return request(std::move(req));
+	}
+
+	/**
+	 * OPTIONS request.
+	 */
+	std::shared_ptr<net::http::response>
+	OPTIONS(net::http::request &&req)
+	{
+		req.method("OPTIONS");
+		return request(std::move(req));
 	}
 
 	/**

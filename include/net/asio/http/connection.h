@@ -104,14 +104,14 @@ public:
 	write(std::shared_ptr<std::vector<char>> data) = 0;
 
 	void
-	write_request(std::shared_ptr<net::http::response> &&res)
+	write_request(std::shared_ptr<net::http::response> res)
 	{
 		auto self = shared_from_this();
 		auto s = res->request().bytes();
 		auto out = std::make_shared<std::vector<char>>(
 			s.cbegin(), s.cend()
 		);
-		res_ = std::move(res);
+		res_.swap(res);
 		self->extend_timer();
 		auto expected = out->size();
 		write(out)->on_done([self, expected](const size_t) {
