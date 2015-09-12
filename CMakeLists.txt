@@ -13,7 +13,7 @@ if(USE_CLANG)
 	set(CMAKE_CXX_COMPILER "/usr/bin/clang++-3.7")
 endif()
 include(set_cxx_norm.cmake)
-set_cxx_norm(${CXX_NORM_CXX11})
+set_cxx_norm(${CXX_NORM_CXX14})
 enable_testing()
 
 set(Protocols_LIBRARY asio-protocols)

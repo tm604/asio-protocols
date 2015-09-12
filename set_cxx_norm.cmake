@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 2.6.3)
 set(CXX_NORM_CXX98 1)   # C++98
 set(CXX_NORM_CXX03 2)   # C++03
 set(CXX_NORM_CXX11 3)   # C++11
+set(CXX_NORM_CXX14 4)   # C++14
 
 # - Set the wanted C++ norm
 # Adds the good argument to the command line in function of the compiler
@@ -41,12 +42,20 @@ macro(set_cxx_norm NORM)
             else()
                 add_definitions("-std=c++11")
             endif()
+        elseif(${NORM} EQUAL ${CXX_NORM_CXX14})
+            if(${cxx_compiler_version} VERSION_LESS "4.9.0")
+                add_definitions("-std=c++1y")
+            else()
+                add_definitions("-std=c++14")
+            endif()
         endif()
 
     elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 
         if(${NORM} EQUAL ${CXX_NORM_CXX11})
             add_definitions("-std=c++11")
+		elseif(${NORM} EQUAL ${CXX_NORM_CXX14})
+            add_definitions("-std=c++14")
         endif()
 
     endif()
