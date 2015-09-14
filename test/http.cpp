@@ -55,16 +55,32 @@ SCENARIO("http request", "[http]") {
 		r.on_header_added.connect([&seen_headers](const header &h) {
 			seen_headers.push_back({ h.key(), h.value() });
 		});
-		r << header("some-header", "x");
-		REQUIRE(seen_headers.size() == 1);
-		r << header("other-header", "y");
-		CHECK(seen_headers.size() == 2);
-		CHECK(r.header_value("some-header") == "x");
-		CHECK(seen_headers[0].first == "Some-Header");
-		CHECK(seen_headers[0].second == "x");
-		CHECK(r.header_value("other-header") == "y");
-		CHECK(seen_headers[1].first == "Other-Header");
-		CHECK(seen_headers[1].second == "y");
+		WHEN("we add a header") {
+			r << header("some-header", "x");
+			THEN("header count increases") {
+				REQUIRE(seen_headers.size() == 1);
+			}
+			THEN("our callback was triggered") {
+				CHECK(seen_headers.size() == 1);
+				CHECK(seen_headers[0].first == "Some-Header");
+				CHECK(seen_headers[0].second == "x");
+			}
+			WHEN("we add another header") {
+				r << header("other-header", "y");
+				THEN("header count is now 2") {
+					CHECK(seen_headers.size() == 2);
+				}
+				THEN("value matches for both headers") {
+					CHECK(r.header_value("some-header") == "x");
+					CHECK(r.header_value("other-header") == "y");
+				}
+				THEN("callback was called again") {
+					CHECK(seen_headers.size() == 2);
+					CHECK(seen_headers[1].first == "Other-Header");
+					CHECK(seen_headers[1].second == "y");
+				}
+			}
+		}
 	}
 	GIVEN("a request from a string") {
 		auto r = req_from_string(R"(
@@ -89,16 +105,32 @@ SCENARIO("http response", "[http]") {
 		r.on_header_added.connect([&seen_headers](const header &h) {
 			seen_headers.push_back({ h.key(), h.value() });
 		});
-		r << header("some-header", "x");
-		CHECK(seen_headers.size() == 1);
-		r << header("other-header", "y");
-		CHECK(seen_headers.size() == 2);
-		CHECK(r.header_value("some-header") == "x");
-		CHECK(seen_headers[0].first == "Some-Header");
-		CHECK(seen_headers[0].second == "x");
-		CHECK(r.header_value("other-header") == "y");
-		CHECK(seen_headers[1].first == "Other-Header");
-		CHECK(seen_headers[1].second == "y");
+		WHEN("we add a header") {
+			r << header("some-header", "x");
+			THEN("header count increases") {
+				REQUIRE(seen_headers.size() == 1);
+			}
+			THEN("our callback was triggered") {
+				CHECK(seen_headers.size() == 1);
+				CHECK(seen_headers[0].first == "Some-Header");
+				CHECK(seen_headers[0].second == "x");
+			}
+			WHEN("we add another header") {
+				r << header("other-header", "y");
+				THEN("header count is now 2") {
+					CHECK(seen_headers.size() == 2);
+				}
+				THEN("value matches for both headers") {
+					CHECK(r.header_value("some-header") == "x");
+					CHECK(r.header_value("other-header") == "y");
+				}
+				THEN("callback was called again") {
+					CHECK(seen_headers.size() == 2);
+					CHECK(seen_headers[1].first == "Other-Header");
+					CHECK(seen_headers[1].second == "y");
+				}
+			}
+		}
 	}
 	GIVEN("a response from a string") {
 		auto r = res_from_string(R"(
