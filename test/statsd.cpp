@@ -204,7 +204,6 @@ SCENARIO("statsd server") {
 		}
 	}
 }
-#endif
 
 SCENARIO("UDP handling", "[statsd][udp]") {
 	boost::asio::io_service iosrv;
@@ -215,3 +214,4 @@ SCENARIO("UDP handling", "[statsd][udp]") {
 		iosrv.run();
 	}
 }
+#endif
