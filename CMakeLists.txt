@@ -23,7 +23,7 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 
 include_directories(include/ src/)
 
-find_package(Boost COMPONENTS chrono system regex thread log unit_test_framework)
+find_package(Boost COMPONENTS chrono system regex thread log)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Future REQUIRED)
