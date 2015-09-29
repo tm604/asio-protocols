@@ -19,6 +19,7 @@ class response : public message {
 public:
 	response(
 	):completion_(cps::future<uint16_t>::create_shared("completion for default HTTP response")),
+	  current_completion_(cps::future<uint16_t>::create_shared("completion for default HTTP response")),
 	  stall_timeout_{ 30.0f }
 	{
 	}
@@ -28,6 +29,7 @@ public:
 		float stall_timeout = 30.0f
 	):request_(std::move(req)),
 	  completion_(cps::future<uint16_t>::create_shared(request_.method() + " " + request_.uri().string() + " completion")),
+	  current_completion_(cps::future<uint16_t>::create_shared(request_.method() + " " + request_.uri().string() + " completion")),
 	  stall_timeout_{ stall_timeout }
 	{
 	}
@@ -45,6 +47,7 @@ public:
 	  status_code_(std::move(src.status_code_)),
 	  status_message_(std::move(src.status_message_)),
 	  completion_(std::move(src.completion_)),
+	  current_completion_(std::move(src.current_completion_)),
 	  stall_timeout_(std::move(src.stall_timeout_))
 	{
 	}
@@ -109,7 +112,14 @@ public:
 	 * It will resolve with the status code when done.
 	 */
 	std::shared_ptr<cps::future<uint16_t>>
-	completion() { return completion_; }
+	completion() {
+		return completion_;
+	}
+
+	std::shared_ptr<cps::future<uint16_t>>
+	current_completion() {
+		return current_completion_;
+	}
 
 	/**
 	 * Returns the request which initiated this response.
@@ -123,6 +133,13 @@ public:
 	const float stall_timeout() const { return stall_timeout_; }
 	void stall_timeout(float sec) { stall_timeout_ = sec; }
 
+	void reset() {
+		current_completion_ = cps::future<uint16_t>::create_shared(request_.method() + " " + request_.uri().string() + " completion");
+		headers_.clear();
+		version_ = "";
+		body_ = "";
+	}
+
 public: // Signals
 	boost::signals2::signal<void(uint16_t)> on_status_code;
 	boost::signals2::signal<void(const std::string &)> on_status_message;
@@ -134,6 +151,7 @@ protected:
 	/** e.g. 'OK' */
 	std::string status_message_;
 	std::shared_ptr<cps::future<uint16_t>> completion_;
+	std::shared_ptr<cps::future<uint16_t>> current_completion_;
 	float stall_timeout_;
 };
 

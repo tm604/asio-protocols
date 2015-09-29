@@ -119,7 +119,7 @@ public:
 			// std::cout << "wrote " << bytes << " bytes, expected to write " << expected << " bytes\n";
 		})->on_fail([self](const std::string &err) {
 			// std::cerr << "Error writing: " << err << "\n";
-			auto f = self->res_->completion();
+			auto f = self->res_->current_completion();
 			if(f->is_ready()) return;
 			f->fail(err);
 		});
@@ -162,7 +162,7 @@ public:
 		})->on_fail([self](const std::string &err) {
 			// std::cerr << "Error reading: " << err << "\n";
 			if(self->res_) {
-				auto f = self->res_->completion();
+				auto f = self->res_->current_completion();
 				if(f->is_ready()) return;
 				f->fail(err);
 			}
@@ -199,7 +199,7 @@ public:
 						} else {
 							self->close();
 							if(self->res_) {
-								auto f = self->res_->completion();
+								auto f = self->res_->current_completion();
 								if(!f->is_ready())
 									f->fail("no content-length or TE");
 							}
@@ -207,7 +207,7 @@ public:
 					} catch(const std::runtime_error &ex) {
 						self->close();
 						if(self->res_) {
-							auto f = self->res_->completion();
+							auto f = self->res_->current_completion();
 							if(!f->is_ready())
 								f->fail(ex.what());
 						}
@@ -217,7 +217,7 @@ public:
 		})->on_fail([self](const std::string &err) {
 			// std::cerr << "Error reading header: " << err << "\n";
 			if(self->res_) {
-				auto f = self->res_->completion();
+				auto f = self->res_->current_completion();
 				if(!f->is_ready())
 					f->fail(err);
 			}
@@ -245,7 +245,7 @@ public:
 					})->on_fail([self](const std::string &err) {
 						// std::cerr << "Error reading body data: " << err << "\n";
 						if(self->res_) {
-							auto f = self->res_->completion();
+							auto f = self->res_->current_completion();
 							if(!f->is_ready())
 								f->fail(err);
 						}
@@ -265,7 +265,7 @@ public:
 			})->on_fail([self](const std::string &err) {
 				// std::cerr << "Error reading body data: " << err << "\n";
 				if(self->res_) {
-					auto f = self->res_->completion();
+					auto f = self->res_->current_completion();
 					if(!f->is_ready())
 						f->fail(err);
 				}
@@ -285,15 +285,15 @@ public:
 		auto r = res_;
 		res_.reset();
 		if(r->have_header("Connection") && r->header_value("Connection") == "close") {
-			if(!r->completion()->is_ready())
-				r->completion()->done(r->status_code());
+			if(!r->current_completion()->is_ready())
+				r->current_completion()->done(r->status_code());
 			close();
 		} else {
 			handle_response();
 			release();
 			// std::cout << "Marking response done\n";
-			if(!r->completion()->is_ready())
-				r->completion()->done(r->status_code());
+			if(!r->current_completion()->is_ready())
+				r->current_completion()->done(r->status_code());
 			// std::cout << "Done marking response done\n";
 		}
 	}
@@ -338,8 +338,8 @@ public:
 				// std::cerr << "Timer expired\n";
 				self->timer_.reset();
 				self->close();
-				if(self->res_ && !self->res_->completion()->is_ready())
-					self->res_->completion()->fail("Timeout expired (" + std::to_string(target.count()) + "ms)");
+				if(self->res_ && !self->res_->current_completion()->is_ready())
+					self->res_->current_completion()->fail("Timeout expired (" + std::to_string(target.count()) + "ms)");
 			}
 		});
 	}

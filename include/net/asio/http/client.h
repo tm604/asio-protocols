@@ -12,6 +12,26 @@
 namespace net {
 namespace http {
 
+template<typename T>
+struct chained
+{
+	typedef T result_type;
+
+	template<typename InputIterator>
+	T operator()(
+		InputIterator first,
+		InputIterator last
+	) const
+	{
+		while(first != last) {
+			if(!*first) return false;
+			++first;
+		}
+
+		return true;
+	}
+};
+
 class client {
 public:
 	client(
@@ -25,17 +45,53 @@ public:
 	{
 	}
 
+	std::function<void(const cps::future<uint16_t> &)>
+	completion_handler(
+		std::shared_ptr<connection_pool> endpoint,
+		std::shared_ptr<net::http::response> res,
+		int retry
+	)
+	{
+		auto self = this;
+		return [self, endpoint, res, retry](const cps::future<uint16_t> &f) {
+			/* Our response has either been delivered, or we had a failure.
+			 * Delegate to existing handlers first.
+			 */
+			auto v = self->on_completion(f, res, retry);
+			if(!v) {
+				/* Something didn't like the response and wants us to retry */
+				res->reset();
+				res->current_completion()->on_ready(self->completion_handler(endpoint, res, retry + 1));
+				endpoint->next()->on_done([res](std::shared_ptr<connection> conn) {
+					// std::cout << "Have endpoint";
+					conn->write_request(res);
+				});
+			} else {
+				if(f.is_done())
+					res->completion()->done(f.value());
+				else if(f.is_failed())
+					res->completion()->fail_from(f);
+				else if(f.is_cancelled())
+					res->completion()->cancel();
+			}
+		};
+	}
+
 	/**
 	 * Arbitrary HTTP request. Requires a valid method on the HTTP request instance.
 	 */
 	std::shared_ptr<net::http::response>
 	request(net::http::request &&req)
 	{
+		auto self = this;
 		auto endpoint = endpoint_for(req);
 		auto res = std::make_shared<net::http::response>(
 			std::move(req),
 			stall_timeout_
 		);
+
+		res->current_completion()->on_ready(completion_handler(endpoint, res, 0));
+
 		endpoint->next()->on_done([res](std::shared_ptr<connection> conn) {
 			// std::cout << "Have endpoint";
 			conn->write_request(res);
@@ -157,6 +213,13 @@ public:
 	{
 		stall_timeout_ = sec;
 	}
+
+public:
+	/** Supports chained handlers for completion events */
+	boost::signals2::signal<
+		bool(const cps::future<uint16_t> &, std::shared_ptr<net::http::response>, int),
+		chained<bool>
+	> on_completion;
 
 private:
 	boost::asio::io_service &service_;
