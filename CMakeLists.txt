@@ -40,7 +40,6 @@ add_library(
 	src/sink.cpp
 	src/stream.cpp
 	src/amqp.cpp
-	#	src/http.cpp
 )
 
 install(
