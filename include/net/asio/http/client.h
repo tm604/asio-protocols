@@ -150,6 +150,16 @@ public:
 	}
 
 	/**
+	 * DELETE request.
+	 */
+	std::shared_ptr<net::http::response>
+	DELETE(net::http::request &&req)
+	{
+		req.method("DELETE");
+		return request(std::move(req));
+	}
+
+	/**
 	 * Returns the connection pool for the given request.
 	 */
 	std::shared_ptr<connection_pool>
