@@ -57,7 +57,15 @@ public:
 			/* Our response has either been delivered, or we had a failure.
 			 * Delegate to existing handlers first.
 			 */
-			auto v = self->on_completion(f, res, retry);
+			bool v;
+			try {
+				/* Raising an exception in the completion handler means we should pass that immediately to the completion() status */
+				v = self->on_completion(f, res, retry);
+			} catch(const std::exception &e) {
+				res->completion()->fail(e);
+				return;
+			}
+
 			if(!v) {
 				/* Something didn't like the response and wants us to retry */
 				res->reset();
